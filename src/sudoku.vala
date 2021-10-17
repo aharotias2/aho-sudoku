@@ -66,6 +66,11 @@ namespace Aho {
                 }
             }
             
+            int rotate_count = Random.int_range(1, 10);
+            for (int i = 0; i < rotate_count; i++) {
+                rotate_values(data);
+            }
+            
             cells = new Cell[9, 9];
             for (int i = 0; i < 9; i++) {
                 for (int j = 0; j < 9; j++) {
@@ -98,7 +103,7 @@ namespace Aho {
                 if (i / 3 == from) {
                     k = to * 3 + i % 3;
                 } else if (i / 3 == to) {
-                    k = from * 3 + i % 3;
+                    k =     from * 3 + i % 3;
                 }
                 for (int j = 0; j < 9; j++) {
                     dest[k, j] = src_data[i, j];
@@ -111,6 +116,20 @@ namespace Aho {
             }
         }
 
+        private void rotate_values(uint8[,] data) {
+            uint8[,] temp = new uint8[9, 9];
+            for (int i = 0; i < 9; i++) {
+                for (int j = 0; j < 9; j++) {
+                    temp[j, 8 - i] = data[i, j];
+                }
+            }
+            for (int i = 0; i < 9; i++) {
+                for (int j = 0; j < 9; j++) {
+                    data[i, j] = temp[i, j];
+                }
+            }
+        }
+        
         private int count_fixed_in_area(int row, int col) {
             int x1 = row / 3 * 3;
             int x2 = x1 + 3;
