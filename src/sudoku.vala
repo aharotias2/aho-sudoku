@@ -27,6 +27,11 @@ namespace Aho {
         public uint8 temp_value;
     }
 
+    public enum Theme {
+        LIGHT,
+        DARK
+    }
+    
     public class SudokuModel : Object {
         public signal void completed();
 
@@ -307,6 +312,7 @@ namespace Aho {
                 queue_draw();
             }
         }
+        public Theme theme { get; set; }
         private const int MARGIN = 0;
         private const int CELL_WIDTH = 50;
         private const int CELL_HEIGHT = 50;
@@ -421,11 +427,13 @@ namespace Aho {
         }
 
         public override bool draw(Cairo.Context cairo) {
+            Gdk.RGBA fg_color = theme == LIGHT ? DEFAULT_FG : DEFAULT_BG;
+            Gdk.RGBA bg_color = theme == LIGHT ? DEFAULT_BG : DEFAULT_FG;
             Cairo.TextExtents extents;
 
             Cairo.Pattern pattern_bg = new Cairo.Pattern.radial(mouse_position_x, mouse_position_y, 0,
                     mouse_position_x, mouse_position_y, CELL_WIDTH * 1.5);
-            pattern_bg.add_color_stop_rgb(CELL_WIDTH / 2, DEFAULT_FG.red, DEFAULT_FG.green, DEFAULT_FG.blue);
+            pattern_bg.add_color_stop_rgb(CELL_WIDTH / 2, fg_color.red, fg_color.green, fg_color.blue);
             pattern_bg.add_color_stop_rgb(0, HIGHLIGHT_BG.red, HIGHLIGHT_BG.green, HIGHLIGHT_BG.blue);
             cairo.set_source(pattern_bg);
             cairo.set_line_width(0.0);
@@ -438,35 +446,31 @@ namespace Aho {
             for (int i = 0; i < 9; i++) {
                 for (int j = 0; j < 9; j++) {
                     if (model.get_status(i, j) == FIXED) {
-                        cairo.set_source_rgb(DEFAULT_BG.red, DEFAULT_BG.green, DEFAULT_BG.blue);
+                        cairo.set_source_rgb(bg_color.red, bg_color.green, bg_color.blue);
                     } else if (is_debug_mode) {
                         cairo.set_source_rgb(DEBUG_BG.red, DEBUG_BG.green, DEBUG_BG.blue);
                     } else {
                         if (is_selected(i, j)) {
                             Cairo.Pattern pattern = new Cairo.Pattern.radial(rects[i, j].x + CELL_WIDTH / 2, rects[i, j].y + CELL_HEIGHT / 2, 0,
                                     rects[i, j].x + CELL_WIDTH / 2, rects[i, j].y + CELL_HEIGHT / 2, CELL_WIDTH);
-                            pattern.add_color_stop_rgb(CELL_WIDTH / 2, DEFAULT_BG.red, DEFAULT_BG.green, DEFAULT_BG.blue);
+                            pattern.add_color_stop_rgb(CELL_WIDTH / 2, bg_color.red, bg_color.green, bg_color.blue);
                             pattern.add_color_stop_rgb(0, SELECTED_COLOR.red, SELECTED_COLOR.green, SELECTED_COLOR.blue);
                             cairo.set_source(pattern);
                         } else if (is_in_highlight(i, j)) {
-                            /*
-                            Cairo.Pattern pattern = new Cairo.Pattern.radial(rects[i, j].x + CELL_WIDTH / 2, rects[i, j].y + CELL_HEIGHT / 2, 0,
-                                    rects[i, j].x + CELL_WIDTH / 2, rects[i, j].y + CELL_HEIGHT / 2, CELL_WIDTH * 1.5);
-                            */
                             Cairo.Pattern pattern = new Cairo.Pattern.radial(mouse_position_x, mouse_position_y, 0,
                                     mouse_position_x, mouse_position_y, CELL_WIDTH * 1.5);
-                            pattern.add_color_stop_rgb(CELL_WIDTH / 2, DEFAULT_BG.red, DEFAULT_BG.green, DEFAULT_BG.blue);
+                            pattern.add_color_stop_rgb(CELL_WIDTH / 2, bg_color.red, bg_color.green, bg_color.blue);
                             pattern.add_color_stop_rgb(0, HOVER_COLOR.red, HOVER_COLOR.green, HOVER_COLOR.blue);
                             cairo.set_source(pattern);
                         } else if (model.get_temp_value(i, j) > 0) {
                             Cairo.Pattern pattern = new Cairo.Pattern.linear(rects[i, j].x, rects[i, j].y, rects[i, j].x + rects[i, j].width,
                                     rects[i, j].y + rects[i, j].height);
                             pattern.add_color_stop_rgb(0.1, TEMP_COLOR.red, TEMP_COLOR.green, TEMP_COLOR.blue);
-                            pattern.add_color_stop_rgb(0.5, DEFAULT_BG.red, DEFAULT_BG.green, DEFAULT_BG.blue);
+                            pattern.add_color_stop_rgb(0.5, bg_color.red, bg_color.green, bg_color.blue);
                             pattern.add_color_stop_rgb(0.9, TEMP_COLOR.red, TEMP_COLOR.green, TEMP_COLOR.blue);
                             cairo.set_source(pattern);
                         } else {
-                            cairo.set_source_rgb(DEFAULT_BG.red, DEFAULT_BG.green, DEFAULT_BG.blue);
+                            cairo.set_source_rgb(bg_color.red, bg_color.green, bg_color.blue);
                         }
                     }
                     cairo.rectangle(
@@ -480,7 +484,7 @@ namespace Aho {
                     if (is_debug_mode) {
                         cairo.set_source_rgb(DEBUG_FG.red, DEBUG_FG.green, DEBUG_FG.blue);
                     } else {
-                        cairo.set_source_rgb(DEFAULT_FG.red, DEFAULT_FG.green, DEFAULT_FG.blue);
+                        cairo.set_source_rgb(fg_color.red, fg_color.green, fg_color.blue);
                     }
                     int num = 0;
                     if (model.get_status(i, j) == FIXED) {
@@ -585,11 +589,13 @@ namespace Aho {
 }
 
 bool version = false;
-bool is_debug= false;
+bool is_debug = false;
+string theme_name;
 
 const OptionEntry[] options = {
     {"version", 'v', OptionFlags.NONE, OptionArg.NONE, ref version, "Display version number", null},
-    {"debug", 'd', OptionFlags.NONE, OptionArg.NONE, ref is_debug, "Launch in debugging mode", null}
+    {"debug", 'd', OptionFlags.NONE, OptionArg.NONE, ref is_debug, "Launch in debugging mode", null},
+    {"theme", 't', OptionFlags.NONE, OptionArg.STRING, ref theme_name, "color theme [light, dark, default = light]", null}
 };
 
 int main(string[] argv) {
@@ -671,6 +677,7 @@ int main(string[] argv) {
                         dialog.close();
                     });
                     widget.margin = 10;
+                    widget.theme = theme_name == "dark" ? Aho.Theme.DARK : Aho.Theme.LIGHT;
                 }
 
                 var box_3 = new Gtk.ButtonBox(HORIZONTAL);
