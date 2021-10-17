@@ -31,11 +31,10 @@ namespace Aho {
         public signal void completed();
 
         private Cell[,] cells;
-        private uint64 try_count;
-        private int progress;
         private const int MAX_FIXED_AREA = 3;
-
+        
         private void init_algorithm() {
+            Random.set_seed((uint32) new DateTime.now_local().to_unix());
             uint8[,] data = {
                 {1, 2, 3, 4, 5, 6, 7, 8, 9},
                 {7, 8, 9, 1, 2, 3, 4, 5, 6},
@@ -57,11 +56,20 @@ namespace Aho {
                     }
                 } while (true);
             }
-
+            
+            for (int i = 0; i < 3;) {
+                int from = Random.int_range(0, 3);
+                int to = Random.int_range(0, 3);
+                if (from != to) {
+                    swap_values(data, from, to);
+                    i++;
+                }
+            }
+            
             cells = new Cell[9, 9];
             for (int i = 0; i < 9; i++) {
                 for (int j = 0; j < 9; j++) {
-                    cells[i, j].correct_value = randomizer[data[i, j]];
+                    cells[i, j].correct_value = randomizer[data[i, j] - 1];
                     int fixed_in_area = count_fixed_in_area(i, j);
                     int rest_in_area = count_rest_in_area(i, j);
                     if (fixed_in_area >= MAX_FIXED_AREA) {
@@ -78,6 +86,27 @@ namespace Aho {
                         }
                     }
                     cells[i, j].temp_value = 0;
+                }
+            }
+        }
+
+        private void swap_values(uint8[,] src_data, int from, int to) {
+            debug("swap_values: from = %d, to = %d", from, to);
+            uint8[,] dest = new uint8[9, 9];
+            for (int i = 0; i < 9; i++) {
+                int k = i;
+                if (i / 3 == from) {
+                    k = to * 3 + i % 3;
+                } else if (i / 3 == to) {
+                    k = from * 3 + i % 3;
+                }
+                for (int j = 0; j < 9; j++) {
+                    dest[k, j] = src_data[i, j];
+                }
+            }
+            for (int i = 0; i < 9; i++) {
+                for (int j = 0; j < 9; j++) {
+                    src_data[i, j] = dest[i, j];
                 }
             }
         }
@@ -111,11 +140,7 @@ namespace Aho {
         }
 
         public int get_correct_value(int x, int y) {
-            if (cells[x, y].status == FIXED) {
-                return cells[x, y].correct_value;
-            } else {
-                return 0;
-            }
+            return cells[x, y].correct_value;
         }
 
         public int get_temp_value(int x, int y) {
@@ -154,7 +179,6 @@ namespace Aho {
 
         private bool is_not_in_row(uint8 val, int row, int col, bool is_editing) {
             for (int j = 0; j < 9; j++) {
-                try_count++;
                 if (is_editing) {
                     if (cells[row, j].status == FIXED) {
                         if (val == cells[row, j].correct_value) {
@@ -170,14 +194,12 @@ namespace Aho {
                         return false;
                     }
                 }
-                print_progress();
             }
             return true;
         }
 
         private bool is_not_in_column(uint8 val, int row, int col, bool is_editing) {
             for (int i = 0; i < 9; i++) {
-                try_count++;
                 if (is_editing) {
                     if (cells[i, col].status == FIXED) {
                         if (val == cells[i, col].correct_value) {
@@ -193,7 +215,6 @@ namespace Aho {
                         return false;
                     }
                 }
-                print_progress();
             }
             return true;
         }
@@ -253,18 +274,20 @@ namespace Aho {
             }
             return true;
         }
-
-        private void print_progress() {
-            if (try_count > 0) {
-                print("\033[18D");
-            }
-            print("%10llu %2d %3d%%", try_count, progress, (int) ((((double) progress) / 81.0) * 100));
-        }
     }
 
     public class SudokuWidget : Gtk.DrawingArea {
         public signal void require_error_dialog(string message);
         public signal void completed();
+        public bool is_debug_mode {
+            get {
+                return is_debug_mode_value;
+            }
+            set {
+                is_debug_mode_value = value;
+                queue_draw();
+            }
+        }
         private const int MARGIN = 0;
         private const int CELL_WIDTH = 50;
         private const int CELL_HEIGHT = 50;
@@ -275,12 +298,15 @@ namespace Aho {
         private const Gdk.RGBA TEMP_COLOR = {0.4, 0.9, 0.6, 1.0};
         private const Gdk.RGBA DEFAULT_BG = {1.0, 1.0, 1.0, 1.0};
         private const Gdk.RGBA DEFAULT_FG = {0.1, 0.1, 0.1, 1.0};
+        private const Gdk.RGBA DEBUG_BG = {0.5, 0.5, 0.5, 1.0};
+        private const Gdk.RGBA DEBUG_FG = {0.8, 0.1, 0.1, 1.0};
         private Gdk.Rectangle[,] rects;
         private Cairo.Rectangle rect;
         private int[] mouse_hover_position = {-1, -1};
         private int[] selected_position = {-1, -1};
         private SudokuModel? model;
-
+        private bool is_debug_mode_value = false;
+        
         public SudokuWidget() {
             init();
         }
@@ -385,27 +411,31 @@ namespace Aho {
                 for (int j = 0; j < 9; j++) {
                     if (model.get_status(i, j) == FIXED) {
                         cairo.set_source_rgb(DEFAULT_BG.red, DEFAULT_BG.green, DEFAULT_BG.blue);
-                    } else if (is_selected(i, j)) {
-                        Cairo.Pattern pattern = new Cairo.Pattern.radial(rects[i, j].x + CELL_WIDTH / 2, rects[i, j].y + CELL_HEIGHT / 2, 0,
-                                rects[i, j].x + CELL_WIDTH / 2, rects[i, j].y + CELL_HEIGHT / 2, CELL_WIDTH);
-                        pattern.add_color_stop_rgb(CELL_WIDTH / 2, DEFAULT_BG.red, DEFAULT_BG.green, DEFAULT_BG.blue);
-                        pattern.add_color_stop_rgb(0, SELECTED_COLOR.red, SELECTED_COLOR.green, SELECTED_COLOR.blue);
-                        cairo.set_source(pattern);
-                    } else if (is_in_highlight(i, j)) {
-                        Cairo.Pattern pattern = new Cairo.Pattern.radial(rects[i, j].x + CELL_WIDTH / 2, rects[i, j].y + CELL_HEIGHT / 2, 0,
-                                rects[i, j].x + CELL_WIDTH / 2, rects[i, j].y + CELL_HEIGHT / 2, CELL_WIDTH * 1.5);
-                        pattern.add_color_stop_rgb(CELL_WIDTH / 2, DEFAULT_BG.red, DEFAULT_BG.green, DEFAULT_BG.blue);
-                        pattern.add_color_stop_rgb(0, HOVER_COLOR.red, HOVER_COLOR.green, HOVER_COLOR.blue);
-                        cairo.set_source(pattern);
-                    } else if (model.get_temp_value(i, j) > 0) {
-                        Cairo.Pattern pattern = new Cairo.Pattern.linear(rects[i, j].x, rects[i, j].y, rects[i, j].x + rects[i, j].width,
-                                rects[i, j].y + rects[i, j].height);
-                        pattern.add_color_stop_rgb(0.1, TEMP_COLOR.red, TEMP_COLOR.green, TEMP_COLOR.blue);
-                        pattern.add_color_stop_rgb(0.5, DEFAULT_BG.red, DEFAULT_BG.green, DEFAULT_BG.blue);
-                        pattern.add_color_stop_rgb(0.9, TEMP_COLOR.red, TEMP_COLOR.green, TEMP_COLOR.blue);
-                        cairo.set_source(pattern);
+                    } else if (is_debug_mode) {
+                        cairo.set_source_rgb(DEBUG_BG.red, DEBUG_BG.green, DEBUG_BG.blue);
                     } else {
-                        cairo.set_source_rgb(DEFAULT_BG.red, DEFAULT_BG.green, DEFAULT_BG.blue);
+                        if (is_selected(i, j)) {
+                            Cairo.Pattern pattern = new Cairo.Pattern.radial(rects[i, j].x + CELL_WIDTH / 2, rects[i, j].y + CELL_HEIGHT / 2, 0,
+                                    rects[i, j].x + CELL_WIDTH / 2, rects[i, j].y + CELL_HEIGHT / 2, CELL_WIDTH);
+                            pattern.add_color_stop_rgb(CELL_WIDTH / 2, DEFAULT_BG.red, DEFAULT_BG.green, DEFAULT_BG.blue);
+                            pattern.add_color_stop_rgb(0, SELECTED_COLOR.red, SELECTED_COLOR.green, SELECTED_COLOR.blue);
+                            cairo.set_source(pattern);
+                        } else if (is_in_highlight(i, j)) {
+                            Cairo.Pattern pattern = new Cairo.Pattern.radial(rects[i, j].x + CELL_WIDTH / 2, rects[i, j].y + CELL_HEIGHT / 2, 0,
+                                    rects[i, j].x + CELL_WIDTH / 2, rects[i, j].y + CELL_HEIGHT / 2, CELL_WIDTH * 1.5);
+                            pattern.add_color_stop_rgb(CELL_WIDTH / 2, DEFAULT_BG.red, DEFAULT_BG.green, DEFAULT_BG.blue);
+                            pattern.add_color_stop_rgb(0, HOVER_COLOR.red, HOVER_COLOR.green, HOVER_COLOR.blue);
+                            cairo.set_source(pattern);
+                        } else if (model.get_temp_value(i, j) > 0) {
+                            Cairo.Pattern pattern = new Cairo.Pattern.linear(rects[i, j].x, rects[i, j].y, rects[i, j].x + rects[i, j].width,
+                                    rects[i, j].y + rects[i, j].height);
+                            pattern.add_color_stop_rgb(0.1, TEMP_COLOR.red, TEMP_COLOR.green, TEMP_COLOR.blue);
+                            pattern.add_color_stop_rgb(0.5, DEFAULT_BG.red, DEFAULT_BG.green, DEFAULT_BG.blue);
+                            pattern.add_color_stop_rgb(0.9, TEMP_COLOR.red, TEMP_COLOR.green, TEMP_COLOR.blue);
+                            cairo.set_source(pattern);
+                        } else {
+                            cairo.set_source_rgb(DEFAULT_BG.red, DEFAULT_BG.green, DEFAULT_BG.blue);
+                        }
                     }
                     cairo.rectangle(
                         (double) rects[i, j].x,
@@ -415,13 +445,21 @@ namespace Aho {
                     );
                     cairo.fill();
 
-                    cairo.set_source_rgb(DEFAULT_FG.red, DEFAULT_FG.green, DEFAULT_FG.blue);
+                    if (is_debug_mode) {
+                        cairo.set_source_rgb(DEBUG_FG.red, DEBUG_FG.green, DEBUG_FG.blue);
+                    } else {
+                        cairo.set_source_rgb(DEFAULT_FG.red, DEFAULT_FG.green, DEFAULT_FG.blue);
+                    }
                     int num = 0;
                     if (model.get_status(i, j) == FIXED) {
                         num = model.get_correct_value(i, j);
                     }
                     if (model.get_status(i, j) != FIXED) {
-                        num = model.get_temp_value(i, j);
+                        if (is_debug_mode) {
+                            num = model.get_correct_value(i, j);
+                        } else {
+                            num = model.get_temp_value(i, j);
+                        }
                     }
                     if (num > 0) {
                         string num_s = num.to_string();
@@ -507,7 +545,30 @@ namespace Aho {
     }
 }
 
+bool version = false;
+bool is_debug= false;
+
+const OptionEntry[] options = {
+    {"version", 'v', OptionFlags.NONE, OptionArg.NONE, ref version, "Display version number", null},
+    {"debug", 'd', OptionFlags.NONE, OptionArg.NONE, ref is_debug, "Launch in debugging mode", null}
+};
+
 int main(string[] argv) {
+    try {
+        var opt_context = new OptionContext("");
+        opt_context.set_help_enabled(true);
+        opt_context.add_main_entries(options, null);
+        opt_context.parse(ref argv);
+    } catch (OptionError e) {
+        printerr("Error: %s\n", e.message);
+        return 1;
+    }
+    
+    if (version) {
+        print("0.0.1\n");
+        return 0;
+    }
+    
     var app = new Gtk.Application("com.github.aharotias2.sudoku", FLAGS_NONE);
     app.activate.connect(() => {
         Aho.SudokuModel? model = new Aho.SudokuModel();
@@ -537,9 +598,22 @@ int main(string[] argv) {
                     message_label = new Gtk.Label("") {
                         use_markup = true
                     };
-
+    
+                    Gtk.ToggleButton? debug_button = null;
+                    if (is_debug) {
+                        debug_button = new Gtk.ToggleButton.with_label("Debug");
+                        {
+                            debug_button.toggled.connect(() => {
+                                widget.is_debug_mode = debug_button.active;
+                            });
+                        }
+                    }
+                    
                     box_2.pack_start(reset_button, false, false);
                     box_2.pack_start(message_label, true, true);
+                    if (is_debug) {
+                        box_2.pack_start(debug_button, false, false);
+                    }
                     box_2.margin = 10;
                 }
 
