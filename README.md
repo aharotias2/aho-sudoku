@@ -15,8 +15,8 @@ Aho-Sudoku
 
 <https://drive.google.com/file/d/1QHTxAxboADKG25W1bNAHyF1kWguOTikB/view?usp=sharing>
 
-| MD5SUM    | 92e6a767fb9fbf281239351250b50e95                                 |
-| SHA256SUM | 8c58bcb461ab8ba30d1a2b1a26b3de996f1230b50a1ed122dfdee0e1d511eb2d |
+* MD5SUM: 92e6a767fb9fbf281239351250b50e95
+* SHA256SUM: 8c58bcb461ab8ba30d1a2b1a26b3de996f1230b50a1ed122dfdee0e1d511eb2d
 
 ### 実行方法
 
