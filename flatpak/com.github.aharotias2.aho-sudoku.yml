@@ -1,0 +1,18 @@
+app-id: com.github.aharotias2.aho-sudoku
+runtime: org.gnome.Platform
+runtime-version: '41'
+sdk: org.gnome.Sdk
+command: com.github.aharotias2.aho-sudoku
+finish-args:
+  - '--share=ipc'
+  - '--socket=wayland'
+  - '--socket=fallback-x11'
+  - '--system-talk-name=org.freedesktop.Accounts'
+modules:
+  - name: com.github.aharotias2.aho-sudoku
+    buildsystem: meson
+    sources:
+      - type: git
+        url: https://github.com/aharotias2/aho-sudoku.git
+        branch: main
+        
