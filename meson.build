@@ -7,8 +7,7 @@ executable(
   ),
   dependencies: [
     dependency('gdk-3.0'),
-    dependency('gtk+-3.0'),
-    dependency('gee-0.8')
+    dependency('gtk+-3.0')
   ],
   install: true,
   install_dir: get_option('prefix') / 'bin'

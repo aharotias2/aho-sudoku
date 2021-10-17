@@ -312,7 +312,23 @@ namespace Aho {
                 queue_draw();
             }
         }
-        public Theme theme { get; set; }
+        public Theme theme {
+            get {
+                return theme_value;
+            }
+            set {
+                theme_value = value;
+                if (theme_value == LIGHT) {
+                    border_color = {0.1, 0.1, 0.1, 1.0};
+                    cell_color = {1.0, 1.0, 1.0, 1.0};
+                    number_color = {0.1, 0.1, 0.1, 1.0};
+                } else {
+                    border_color = {0.15, 0.15, 0.15, 1.0};
+                    cell_color = {0.1, 0.1, 0.1, 1.0};
+                    number_color = {0.95, 0.95, 0.95, 1.0};
+                }
+            }
+        }
         private const int MARGIN = 0;
         private const int CELL_WIDTH = 50;
         private const int CELL_HEIGHT = 50;
@@ -320,21 +336,22 @@ namespace Aho {
         private const int CELL_BORDER_WIDTH_FAT = 4;
         private const Gdk.RGBA HOVER_COLOR = {0.95, 0.9, 0.6, 1.0};
         private const Gdk.RGBA SELECTED_COLOR = {1.0, 0.5, 0.2, 1.0};
+        private const Gdk.RGBA HIGHLIGHT_BG = {0.6, 0.5, 0.2, 1.0};
         private const Gdk.RGBA TEMP_COLOR = {0.4, 0.9, 0.6, 1.0};
-        private const Gdk.RGBA DEFAULT_BG = {1.0, 1.0, 1.0, 1.0};
-        private const Gdk.RGBA DEFAULT_FG = {0.1, 0.1, 0.1, 1.0};
         private const Gdk.RGBA DEBUG_BG = {0.5, 0.5, 0.5, 1.0};
         private const Gdk.RGBA DEBUG_FG = {0.8, 0.1, 0.1, 1.0};
-        private const Gdk.RGBA HIGHLIGHT_BG = {0.6, 0.5, 0.2, 1.0};
+        private Gdk.RGBA border_color;
+        private Gdk.RGBA cell_color;
+        private Gdk.RGBA number_color;
         private Gdk.Rectangle[,] rects;
         private Cairo.Rectangle rect;
         private int[] mouse_hover_position = {-1, -1};
         private int[] selected_position = {-1, -1};
         private SudokuModel? model;
         private bool is_debug_mode_value = false;
+        private Theme theme_value = LIGHT;
         private double mouse_position_x;
         private double mouse_position_y;
-        
         public SudokuWidget() {
             init();
         }
@@ -427,13 +444,11 @@ namespace Aho {
         }
 
         public override bool draw(Cairo.Context cairo) {
-            Gdk.RGBA fg_color = theme == LIGHT ? DEFAULT_FG : DEFAULT_BG;
-            Gdk.RGBA bg_color = theme == LIGHT ? DEFAULT_BG : DEFAULT_FG;
             Cairo.TextExtents extents;
 
             Cairo.Pattern pattern_bg = new Cairo.Pattern.radial(mouse_position_x, mouse_position_y, 0,
                     mouse_position_x, mouse_position_y, CELL_WIDTH * 1.5);
-            pattern_bg.add_color_stop_rgb(CELL_WIDTH / 2, fg_color.red, fg_color.green, fg_color.blue);
+            pattern_bg.add_color_stop_rgb(CELL_WIDTH / 2, border_color.red, border_color.green, border_color.blue);
             pattern_bg.add_color_stop_rgb(0, HIGHLIGHT_BG.red, HIGHLIGHT_BG.green, HIGHLIGHT_BG.blue);
             cairo.set_source(pattern_bg);
             cairo.set_line_width(0.0);
@@ -446,31 +461,31 @@ namespace Aho {
             for (int i = 0; i < 9; i++) {
                 for (int j = 0; j < 9; j++) {
                     if (model.get_status(i, j) == FIXED) {
-                        cairo.set_source_rgb(bg_color.red, bg_color.green, bg_color.blue);
+                        cairo.set_source_rgb(cell_color.red, cell_color.green, cell_color.blue);
                     } else if (is_debug_mode) {
                         cairo.set_source_rgb(DEBUG_BG.red, DEBUG_BG.green, DEBUG_BG.blue);
                     } else {
                         if (is_selected(i, j)) {
                             Cairo.Pattern pattern = new Cairo.Pattern.radial(rects[i, j].x + CELL_WIDTH / 2, rects[i, j].y + CELL_HEIGHT / 2, 0,
                                     rects[i, j].x + CELL_WIDTH / 2, rects[i, j].y + CELL_HEIGHT / 2, CELL_WIDTH);
-                            pattern.add_color_stop_rgb(CELL_WIDTH / 2, bg_color.red, bg_color.green, bg_color.blue);
+                            pattern.add_color_stop_rgb(CELL_WIDTH / 2, cell_color.red, cell_color.green, cell_color.blue);
                             pattern.add_color_stop_rgb(0, SELECTED_COLOR.red, SELECTED_COLOR.green, SELECTED_COLOR.blue);
                             cairo.set_source(pattern);
                         } else if (is_in_highlight(i, j)) {
                             Cairo.Pattern pattern = new Cairo.Pattern.radial(mouse_position_x, mouse_position_y, 0,
                                     mouse_position_x, mouse_position_y, CELL_WIDTH * 1.5);
-                            pattern.add_color_stop_rgb(CELL_WIDTH / 2, bg_color.red, bg_color.green, bg_color.blue);
+                            pattern.add_color_stop_rgb(CELL_WIDTH / 2, cell_color.red, cell_color.green, cell_color.blue);
                             pattern.add_color_stop_rgb(0, HOVER_COLOR.red, HOVER_COLOR.green, HOVER_COLOR.blue);
                             cairo.set_source(pattern);
                         } else if (model.get_temp_value(i, j) > 0) {
                             Cairo.Pattern pattern = new Cairo.Pattern.linear(rects[i, j].x, rects[i, j].y, rects[i, j].x + rects[i, j].width,
                                     rects[i, j].y + rects[i, j].height);
                             pattern.add_color_stop_rgb(0.1, TEMP_COLOR.red, TEMP_COLOR.green, TEMP_COLOR.blue);
-                            pattern.add_color_stop_rgb(0.5, bg_color.red, bg_color.green, bg_color.blue);
+                            pattern.add_color_stop_rgb(0.5, cell_color.red, cell_color.green, cell_color.blue);
                             pattern.add_color_stop_rgb(0.9, TEMP_COLOR.red, TEMP_COLOR.green, TEMP_COLOR.blue);
                             cairo.set_source(pattern);
                         } else {
-                            cairo.set_source_rgb(bg_color.red, bg_color.green, bg_color.blue);
+                            cairo.set_source_rgb(cell_color.red, cell_color.green, cell_color.blue);
                         }
                     }
                     cairo.rectangle(
@@ -484,7 +499,7 @@ namespace Aho {
                     if (is_debug_mode) {
                         cairo.set_source_rgb(DEBUG_FG.red, DEBUG_FG.green, DEBUG_FG.blue);
                     } else {
-                        cairo.set_source_rgb(fg_color.red, fg_color.green, fg_color.blue);
+                        cairo.set_source_rgb(number_color.red, number_color.green, number_color.blue);
                     }
                     int num = 0;
                     if (model.get_status(i, j) == FIXED) {
