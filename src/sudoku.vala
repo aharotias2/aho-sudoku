@@ -312,7 +312,7 @@ namespace Aho {
         private const int CELL_HEIGHT = 50;
         private const int CELL_BORDER_WIDTH_THIN = 2;
         private const int CELL_BORDER_WIDTH_FAT = 4;
-        private const Gdk.RGBA HOVER_COLOR = {0.9, 0.8, 0.5, 1.0};
+        private const Gdk.RGBA HOVER_COLOR = {0.95, 0.9, 0.6, 1.0};
         private const Gdk.RGBA SELECTED_COLOR = {1.0, 0.5, 0.2, 1.0};
         private const Gdk.RGBA TEMP_COLOR = {0.4, 0.9, 0.6, 1.0};
         private const Gdk.RGBA DEFAULT_BG = {1.0, 1.0, 1.0, 1.0};
