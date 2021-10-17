@@ -312,19 +312,22 @@ namespace Aho {
         private const int CELL_HEIGHT = 50;
         private const int CELL_BORDER_WIDTH_THIN = 2;
         private const int CELL_BORDER_WIDTH_FAT = 4;
-        private const Gdk.RGBA HOVER_COLOR = {1.0, 0.9, 0.6, 1.0};
+        private const Gdk.RGBA HOVER_COLOR = {0.9, 0.8, 0.5, 1.0};
         private const Gdk.RGBA SELECTED_COLOR = {1.0, 0.5, 0.2, 1.0};
         private const Gdk.RGBA TEMP_COLOR = {0.4, 0.9, 0.6, 1.0};
         private const Gdk.RGBA DEFAULT_BG = {1.0, 1.0, 1.0, 1.0};
         private const Gdk.RGBA DEFAULT_FG = {0.1, 0.1, 0.1, 1.0};
         private const Gdk.RGBA DEBUG_BG = {0.5, 0.5, 0.5, 1.0};
         private const Gdk.RGBA DEBUG_FG = {0.8, 0.1, 0.1, 1.0};
+        private const Gdk.RGBA HIGHLIGHT_BG = {0.6, 0.5, 0.2, 1.0};
         private Gdk.Rectangle[,] rects;
         private Cairo.Rectangle rect;
         private int[] mouse_hover_position = {-1, -1};
         private int[] selected_position = {-1, -1};
         private SudokuModel? model;
         private bool is_debug_mode_value = false;
+        private double mouse_position_x;
+        private double mouse_position_y;
         
         public SudokuWidget() {
             init();
@@ -419,8 +422,14 @@ namespace Aho {
 
         public override bool draw(Cairo.Context cairo) {
             Cairo.TextExtents extents;
-            cairo.set_source_rgb(DEFAULT_FG.red, DEFAULT_FG.green, DEFAULT_FG.blue);
+
+            Cairo.Pattern pattern_bg = new Cairo.Pattern.radial(mouse_position_x, mouse_position_y, 0,
+                    mouse_position_x, mouse_position_y, CELL_WIDTH * 1.5);
+            pattern_bg.add_color_stop_rgb(CELL_WIDTH / 2, DEFAULT_FG.red, DEFAULT_FG.green, DEFAULT_FG.blue);
+            pattern_bg.add_color_stop_rgb(0, HIGHLIGHT_BG.red, HIGHLIGHT_BG.green, HIGHLIGHT_BG.blue);
+            cairo.set_source(pattern_bg);
             cairo.set_line_width(0.0);
+
             cairo.rectangle(rect.x, rect.y, rect.width - rect.x, rect.height - rect.y);
             cairo.fill();
 
@@ -440,8 +449,12 @@ namespace Aho {
                             pattern.add_color_stop_rgb(0, SELECTED_COLOR.red, SELECTED_COLOR.green, SELECTED_COLOR.blue);
                             cairo.set_source(pattern);
                         } else if (is_in_highlight(i, j)) {
+                            /*
                             Cairo.Pattern pattern = new Cairo.Pattern.radial(rects[i, j].x + CELL_WIDTH / 2, rects[i, j].y + CELL_HEIGHT / 2, 0,
                                     rects[i, j].x + CELL_WIDTH / 2, rects[i, j].y + CELL_HEIGHT / 2, CELL_WIDTH * 1.5);
+                            */
+                            Cairo.Pattern pattern = new Cairo.Pattern.radial(mouse_position_x, mouse_position_y, 0,
+                                    mouse_position_x, mouse_position_y, CELL_WIDTH * 1.5);
                             pattern.add_color_stop_rgb(CELL_WIDTH / 2, DEFAULT_BG.red, DEFAULT_BG.green, DEFAULT_BG.blue);
                             pattern.add_color_stop_rgb(0, HOVER_COLOR.red, HOVER_COLOR.green, HOVER_COLOR.blue);
                             cairo.set_source(pattern);
@@ -545,6 +558,13 @@ namespace Aho {
                         if (mouse_hover_position[0] != i || mouse_hover_position[1] != j) {
                             mouse_hover_position[0] = i;
                             mouse_hover_position[1] = j;
+                            mouse_position_x = event.x;
+                            mouse_position_y = event.y;
+                            queue_draw();
+                            return true;
+                        } else if (mouse_hover_position[0] == i && mouse_hover_position[1] == j) {
+                            mouse_position_x = event.x;
+                            mouse_position_y = event.y;
                             queue_draw();
                             return true;
                         }
