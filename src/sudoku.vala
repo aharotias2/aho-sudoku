@@ -71,9 +71,41 @@ namespace Aho {
                 }
             }
             
-            int rotate_count = Random.int_range(1, 10);
+            int rotate_count = Random.int_range(0, 10);
             for (int i = 0; i < rotate_count; i++) {
                 rotate_values(data);
+            }
+            
+            int rev_h_count = Random.int_range(0, 10);
+            for (int i = 0; i < rev_h_count; i++) {
+                int block_index = Random.int_range(0, 3);
+                int start_index = block_index * 3;
+                int end_index = block_index * 3 + 3;
+                revert_horizontally(data, start_index, end_index);
+            }
+            
+            int rev_v_count = Random.int_range(0, 10);
+            for (int i = 0; i < rev_v_count; i++) {
+                int block_index = Random.int_range(0, 3);
+                int start_index = block_index * 3;
+                int end_index = block_index * 3 + 3;
+                revert_vertically(data, start_index, end_index);
+            }
+            
+            int slide_v_count = Random.int_range(0, 10);
+            for (int i = 0; i < slide_v_count; i++) {
+                int block_index = Random.int_range(0, 3);
+                int start_index = block_index * 3;
+                int end_index = block_index * 3 + 3;
+                slide_vertically(data, start_index, end_index);
+            }
+            
+            int slide_h_count = Random.int_range(0, 10);
+            for (int i = 0; i < slide_h_count; i++) {
+                int block_index = Random.int_range(0, 3);
+                int start_index = block_index * 3;
+                int end_index = block_index * 3 + 3;
+                slide_horizontally(data, start_index, end_index);
             }
             
             cells = new Cell[9, 9];
@@ -129,6 +161,70 @@ namespace Aho {
                 }
             }
             for (int i = 0; i < 9; i++) {
+                for (int j = 0; j < 9; j++) {
+                    data[i, j] = temp[i, j];
+                }
+            }
+        }
+        
+        private void revert_horizontally(uint8[,] data, int start_index, int end_index) {
+            uint8[,] temp = new uint8[9, 9];
+            for (int i = 0; i < 9; i++) {
+                for (int j = start_index, k = end_index - 1; j < end_index; j++, k--) {
+                    temp[i, k] = data[i, j];
+                }
+            }
+            for (int i = 0; i < 9; i++) {
+                for (int j = start_index; j < end_index; j++) {
+                    data[i, j] = temp[i, j];
+                }
+            }
+        }
+
+        private void revert_vertically(uint8[,] data, int start_index, int end_index) {
+            uint8[,] temp = new uint8[9, 9];
+            for (int i = start_index, k = end_index - 1; i < end_index; i++, k--) {
+                for (int j = 0; j < 9; j++) {
+                    temp[k, j] = data[i, j];
+                }
+            }
+            for (int i = start_index; i < end_index; i++) {
+                for (int j = 0; j < 9; j++) {
+                    data[i, j] = temp[i, j];
+                }
+            }
+        }
+        
+        private void slide_horizontally(uint8[,] data, int start_index, int end_index) {
+            uint8[,] temp = new uint8[9, 9];
+            for (int i = 0; i < 9; i++) {
+                for (int j = start_index; j < end_index; j++) {
+                    if (j + 1 == end_index) {
+                        temp[i, start_index] = data[i, j];
+                    } else {
+                        temp[i, j + 1] = data[i, j];
+                    }
+                }
+            }
+            for (int i = 0; i < 9; i++) {
+                for (int j = start_index; j < end_index; j++) {
+                    data[i, j] = temp[i, j];
+                }
+            }
+        }
+
+        private void slide_vertically(uint8[,] data, int start_index, int end_index) {
+            uint8[,] temp = new uint8[9, 9];
+            for (int i = start_index; i < end_index; i++) {
+                for (int j = 0; j < 9; j++) {
+                    if (i + 1 == end_index) {
+                        temp[start_index, j] = data[i, j];
+                    } else {
+                        temp[i + 1, j] = data[i, j];
+                    }
+                }
+            }
+            for (int i = start_index; i < end_index; i++) {
                 for (int j = 0; j < 9; j++) {
                     data[i, j] = temp[i, j];
                 }
@@ -319,11 +415,13 @@ namespace Aho {
             set {
                 theme_value = value;
                 if (theme_value == LIGHT) {
-                    border_color = {0.1, 0.1, 0.1, 1.0};
+                    border_color = {0.6, 0.6, 0.6, 1.0};
+                    border_highlight_color = {0.0, 0.0, 0.0, 1.0};
                     cell_color = {1.0, 1.0, 1.0, 1.0};
                     number_color = {0.1, 0.1, 0.1, 1.0};
                 } else {
                     border_color = {0.15, 0.15, 0.15, 1.0};
+                    border_highlight_color = {0.6, 0.5, 0.2, 1.0};
                     cell_color = {0.1, 0.1, 0.1, 1.0};
                     number_color = {0.95, 0.95, 0.95, 1.0};
                 }
@@ -344,6 +442,7 @@ namespace Aho {
         private Gdk.RGBA border_color;
         private Gdk.RGBA cell_color;
         private Gdk.RGBA number_color;
+        private Gdk.RGBA border_highlight_color;
         private Gdk.Rectangle[,] rects;
         private Cairo.Rectangle rect;
         private int[] mouse_hover_position = {-1, -1};
@@ -381,7 +480,7 @@ namespace Aho {
 
         private void init() {
             rects = new Gdk.Rectangle[10, 10];
-            int[] x = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+            int x[10];
             int[] y = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
             x[0] = MARGIN + CELL_BORDER_WIDTH_FAT;
             x[1] = x[0] + CELL_WIDTH + CELL_BORDER_WIDTH_THIN;
@@ -449,9 +548,9 @@ namespace Aho {
 
             if (mouse_hover_position[0] >= 0 && mouse_hover_position[1] >= 0) {
                 Cairo.Pattern pattern_bg = new Cairo.Pattern.radial(mouse_position_x, mouse_position_y, 0,
-                        mouse_position_x, mouse_position_y, CELL_WIDTH * 1.5);
+                        mouse_position_x, mouse_position_y, CELL_WIDTH * 5.0);
                 pattern_bg.add_color_stop_rgb(CELL_WIDTH / 2, border_color.red, border_color.green, border_color.blue);
-                pattern_bg.add_color_stop_rgb(0, HIGHLIGHT_BG.red, HIGHLIGHT_BG.green, HIGHLIGHT_BG.blue);
+                pattern_bg.add_color_stop_rgb(0, border_highlight_color.red, border_highlight_color.green, border_highlight_color.blue);
                 cairo.set_source(pattern_bg);
             } else {
                 cairo.set_source_rgb(border_color.red, border_color.green, border_color.blue);
@@ -472,13 +571,13 @@ namespace Aho {
                     } else {
                         if (is_selected(i, j)) {
                             Cairo.Pattern pattern = new Cairo.Pattern.radial(rects[i, j].x + CELL_WIDTH / 2, rects[i, j].y + CELL_HEIGHT / 2, 0,
-                                    rects[i, j].x + CELL_WIDTH / 2, rects[i, j].y + CELL_HEIGHT / 2, CELL_WIDTH);
+                                    rects[i, j].x + CELL_WIDTH / 2, rects[i, j].y + CELL_HEIGHT / 2, CELL_WIDTH * 2.0);
                             pattern.add_color_stop_rgb(CELL_WIDTH / 2, cell_color.red, cell_color.green, cell_color.blue);
                             pattern.add_color_stop_rgb(0, SELECTED_COLOR.red, SELECTED_COLOR.green, SELECTED_COLOR.blue);
                             cairo.set_source(pattern);
                         } else if (is_in_highlight(i, j)) {
                             Cairo.Pattern pattern = new Cairo.Pattern.radial(mouse_position_x, mouse_position_y, 0,
-                                    mouse_position_x, mouse_position_y, CELL_WIDTH * 1.5);
+                                    mouse_position_x, mouse_position_y, CELL_WIDTH * 3.0);
                             pattern.add_color_stop_rgb(CELL_WIDTH / 2, cell_color.red, cell_color.green, cell_color.blue);
                             pattern.add_color_stop_rgb(0, HOVER_COLOR.red, HOVER_COLOR.green, HOVER_COLOR.blue);
                             cairo.set_source(pattern);
