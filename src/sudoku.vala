@@ -327,6 +327,7 @@ namespace Aho {
                     cell_color = {0.1, 0.1, 0.1, 1.0};
                     number_color = {0.95, 0.95, 0.95, 1.0};
                 }
+                queue_draw();
             }
         }
         private const int MARGIN = 0;
@@ -446,11 +447,15 @@ namespace Aho {
         public override bool draw(Cairo.Context cairo) {
             Cairo.TextExtents extents;
 
-            Cairo.Pattern pattern_bg = new Cairo.Pattern.radial(mouse_position_x, mouse_position_y, 0,
-                    mouse_position_x, mouse_position_y, CELL_WIDTH * 1.5);
-            pattern_bg.add_color_stop_rgb(CELL_WIDTH / 2, border_color.red, border_color.green, border_color.blue);
-            pattern_bg.add_color_stop_rgb(0, HIGHLIGHT_BG.red, HIGHLIGHT_BG.green, HIGHLIGHT_BG.blue);
-            cairo.set_source(pattern_bg);
+            if (mouse_hover_position[0] >= 0 && mouse_hover_position[1] >= 0) {
+                Cairo.Pattern pattern_bg = new Cairo.Pattern.radial(mouse_position_x, mouse_position_y, 0,
+                        mouse_position_x, mouse_position_y, CELL_WIDTH * 1.5);
+                pattern_bg.add_color_stop_rgb(CELL_WIDTH / 2, border_color.red, border_color.green, border_color.blue);
+                pattern_bg.add_color_stop_rgb(0, HIGHLIGHT_BG.red, HIGHLIGHT_BG.green, HIGHLIGHT_BG.blue);
+                cairo.set_source(pattern_bg);
+            } else {
+                cairo.set_source_rgb(border_color.red, border_color.green, border_color.blue);
+            }
             cairo.set_line_width(0.0);
 
             cairo.rectangle(rect.x, rect.y, rect.width - rect.x, rect.height - rect.y);
@@ -603,32 +608,34 @@ namespace Aho {
     }
 }
 
-bool version = false;
-bool is_debug = false;
-string theme_name;
-
-const OptionEntry[] options = {
-    {"version", 'v', OptionFlags.NONE, OptionArg.NONE, ref version, "Display version number", null},
-    {"debug", 'd', OptionFlags.NONE, OptionArg.NONE, ref is_debug, "Launch in debugging mode", null},
-    {"theme", 't', OptionFlags.NONE, OptionArg.STRING, ref theme_name, "color theme [light, dark, default = light]", null}
-};
-
 int main(string[] argv) {
-    try {
-        var opt_context = new OptionContext("");
-        opt_context.set_help_enabled(true);
-        opt_context.add_main_entries(options, null);
-        opt_context.parse(ref argv);
-    } catch (OptionError e) {
-        printerr("Error: %s\n", e.message);
-        return 1;
+    bool is_debug = false;
+    if (argv.length > 1) {
+        for (int i = 0; i < argv.length; i++) {
+            switch (argv[i]) {
+              case "--version": case "-v":
+                print("Aho-Sudoku 0.0.1\n");
+                return 0;
+              case "--debug": case "-d":
+                is_debug = true;
+                break;
+              case "--help": case "-h": case "-?":
+                print("""Aho-Sudoku version 0.0.1
+
+Usage:
+    com.github.aharotias2.aho-sudoku [OPTION...]
+
+Options:
+    --version   -v      print this version
+    --debug     -d      launch in debug mode
+    --help      -h      print this help
+
+GPLv3 Copyright (C) 2021 Takayuki Tanaka <https://github.com/aharotias2>
+""");
+                return 0;
+            }
+        }
     }
-    
-    if (version) {
-        print("0.0.1\n");
-        return 0;
-    }
-    
     var app = new Gtk.Application("com.github.aharotias2.sudoku", FLAGS_NONE);
     app.activate.connect(() => {
         Aho.SudokuModel? model = new Aho.SudokuModel();
@@ -636,25 +643,47 @@ int main(string[] argv) {
         Gtk.Label? message_label = null;
         var window = new Gtk.ApplicationWindow(app);
         {
+            var header_bar = new Gtk.HeaderBar();
+            {
+                var reset_button = new Gtk.Button.with_label("Reset");
+                {
+                    reset_button.clicked.connect(() => {
+                        model = new Aho.SudokuModel();
+                        widget.bind_model(model);
+                        if (widget.check_is_resetting_ok()) {
+                            message_label.label = @"<span color=\"red\"><b>リセットがうまくいっていません。</b></span>";
+                            Timeout.add(3000, () => {
+                                message_label.label = "";
+                                return false;
+                            });
+                        }
+                    });
+                }
+
+                var switch_button = new Gtk.Switch();
+                {
+                    switch_button.tooltip_text = "Enable the dark mode";
+                    switch_button.state_set.connect((state) => {
+                        widget.theme = switch_button.active ? Aho.Theme.DARK : Aho.Theme.LIGHT;
+                        var gtk_settings = Gtk.Settings.get_default();
+                        if (widget.theme == DARK) {
+                            gtk_settings.gtk_application_prefer_dark_theme = true;
+                        } else {
+                            gtk_settings.gtk_application_prefer_dark_theme = false;
+                        }
+                        return true;
+                    });
+                }
+                
+                header_bar.pack_start(reset_button);
+                header_bar.pack_end(switch_button);
+                header_bar.show_close_button = true;
+            }
+            
             var box_1 = new Gtk.Box(VERTICAL, 0);
             {
                 var box_2 = new Gtk.Box(HORIZONTAL, 0);
                 {
-                    var reset_button = new Gtk.Button.with_label("Reset");
-                    {
-                        reset_button.clicked.connect(() => {
-                            model = new Aho.SudokuModel();
-                            widget.bind_model(model);
-                            if (widget.check_is_resetting_ok()) {
-                                message_label.label = @"<span color=\"red\"><b>リセットがうまくいっていません。</b></span>";
-                                Timeout.add(3000, () => {
-                                    message_label.label = "";
-                                    return false;
-                                });
-                            }
-                        });
-                    }
-
                     message_label = new Gtk.Label("") {
                         use_markup = true
                     };
@@ -669,7 +698,6 @@ int main(string[] argv) {
                         }
                     }
                     
-                    box_2.pack_start(reset_button, false, false);
                     box_2.pack_start(message_label, true, true);
                     if (is_debug) {
                         box_2.pack_start(debug_button, false, false);
@@ -692,7 +720,12 @@ int main(string[] argv) {
                         dialog.close();
                     });
                     widget.margin = 10;
-                    widget.theme = theme_name == "dark" ? Aho.Theme.DARK : Aho.Theme.LIGHT;
+                    var gtk_settings = Gtk.Settings.get_default();
+                    if (gtk_settings.gtk_application_prefer_dark_theme) {
+                        widget.theme = Aho.Theme.DARK;
+                    } else {
+                        widget.theme = Aho.Theme.LIGHT;
+                    }
                 }
 
                 var box_3 = new Gtk.ButtonBox(HORIZONTAL);
@@ -724,43 +757,53 @@ int main(string[] argv) {
                 box_1.pack_start(box_3, false, false);
             }
             
+            window.set_titlebar(header_bar);
             window.add(box_1);
             window.key_press_event.connect((event) => {
                 uint8 num = 0;
-                switch (event.keyval) {
-                  case Gdk.Key.@1:
-                    num = 1;
-                    break;
-                  case Gdk.Key.@2:
-                    num = 2;
-                    break;
-                  case Gdk.Key.@3:
-                    num = 3;
-                    break;
-                  case Gdk.Key.@4:
-                    num = 4;
-                    break;
-                  case Gdk.Key.@5:
-                    num = 5;
-                    break;
-                  case Gdk.Key.@6:
-                    num = 6;
-                    break;
-                  case Gdk.Key.@7:
-                    num = 7;
-                    break;
-                  case Gdk.Key.@8:
-                    num = 8;
-                    break;
-                  case Gdk.Key.@9:
-                    num = 9;
-                    break;
-                  case Gdk.Key.@0:
-                  case Gdk.Key.BackSpace:
-                    num = 0;
-                    break;
-                  default:
-                    return false;
+                if (event.state == CONTROL_MASK) {
+                    switch (event.keyval) {
+                      case Gdk.Key.q:
+                      case Gdk.Key.w:
+                        app.quit();
+                        break;
+                    }
+                } else {
+                    switch (event.keyval) {
+                      case Gdk.Key.@1:
+                        num = 1;
+                        break;
+                      case Gdk.Key.@2:
+                        num = 2;
+                        break;
+                      case Gdk.Key.@3:
+                        num = 3;
+                        break;
+                      case Gdk.Key.@4:
+                        num = 4;
+                        break;
+                      case Gdk.Key.@5:
+                        num = 5;
+                        break;
+                      case Gdk.Key.@6:
+                        num = 6;
+                        break;
+                      case Gdk.Key.@7:
+                        num = 7;
+                        break;
+                      case Gdk.Key.@8:
+                        num = 8;
+                        break;
+                      case Gdk.Key.@9:
+                        num = 9;
+                        break;
+                      case Gdk.Key.@0:
+                      case Gdk.Key.BackSpace:
+                        num = 0;
+                        break;
+                      default:
+                        return false;
+                    }
                 }
                 widget.put(num);
                 return true;
@@ -773,5 +816,6 @@ int main(string[] argv) {
         
         window.show_all();
     });
-    return app.run(argv);
+    
+    return app.run(null);
 }
