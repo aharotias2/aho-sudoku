@@ -8,15 +8,21 @@ Aho-Sudoku
 
 くれぐれも、真剣にプレイしないでください。
 
+### ダークモード
+
+ダークモードはじめました。
+
+![画像](screenshot-2.png)
+
 ### 実行ファイル
 
 ちなみに下記リンクをダウンロードすればコンパイル作業なしでプレイできます。
 実行権限をオンにして実行していただければと思います。
 
-<https://drive.google.com/file/d/1QHTxAxboADKG25W1bNAHyF1kWguOTikB/view?usp=sharing>
+<https://drive.google.com/file/d/1EmrpAaDLhhpTVBr5sgISkh4jYlsFgArN/view?usp=sharing>
 
-* MD5SUM: 92e6a767fb9fbf281239351250b50e95
-* SHA256SUM: 8c58bcb461ab8ba30d1a2b1a26b3de996f1230b50a1ed122dfdee0e1d511eb2d
+* MD5SUM: 4edf3e68261cf2b3f0fa5b59c4ca1dec
+* SHA256SUM: b4f9678f39046e1a7e3ca88f5f7a60862892afaee1747a5e435574c7191bc0ef
 
 ### 実行方法
 
