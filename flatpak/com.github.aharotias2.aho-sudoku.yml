@@ -4,10 +4,9 @@ runtime-version: '41'
 sdk: org.gnome.Sdk
 command: com.github.aharotias2.aho-sudoku
 finish-args:
-  - '--share=ipc'
+  - '--socket=session-bus'
   - '--socket=wayland'
   - '--socket=fallback-x11'
-  - '--system-talk-name=org.freedesktop.Accounts'
 modules:
   - name: com.github.aharotias2.aho-sudoku
     buildsystem: meson
