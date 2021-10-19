@@ -20,19 +20,19 @@ Aho-Sudoku
 
 ![画像](screenshot-3.png)
 
-これは作った自分でも挑戦したくないですし、また誰にもオススメしません。
+これは私もやりたくありませんので、やはりプレイしない方が良いと思います。
 
 インテリアのようなものと思っていただければと思います。
 
 ### 実行ファイル
 
 ちなみに下記リンクをダウンロードすればコンパイル作業なしでプレイできます。
-実行権限をオンにして実行していただければと思います。
+実行権限をオンにして実行できます。(コマンドラインから)
 
-<https://drive.google.com/file/d/1EmrpAaDLhhpTVBr5sgISkh4jYlsFgArN/view?usp=sharing>
+<https://drive.google.com/file/d/1vsqiOV6vLCcRRAzG1e5_GQc4Znbx3aMM/view?usp=sharing>
 
-* MD5SUM: 4edf3e68261cf2b3f0fa5b59c4ca1dec
-* SHA256SUM: b4f9678f39046e1a7e3ca88f5f7a60862892afaee1747a5e435574c7191bc0ef
+* MD5SUM: bc4e08c60df8a386b8c33659412fd997
+* SHA256SUM: 1b6bf44c546571f8ac5815dab59556a2c977a930f2785e632c7b19446fbc4ce7
 
 ### 実行方法
 
