@@ -15,6 +15,16 @@
  */
 
 namespace Aho {
+    public const string[] LETTERS = {
+        "1", "2", "3", "4", "5", "6", "7", "8",
+        "9", "A", "B", "C", "D", "E", "F", "0"
+    };
+
+    public enum ModelSize {
+        MODEL_9,
+        MODEL_16
+    }
+    
     public enum CellStatus {
         EMPTY,
         FIXED,
@@ -33,28 +43,53 @@ namespace Aho {
     }
     
     public class SudokuModel : Object {
+        public ModelSize size { get; private set; }
         public signal void completed();
+        private const uint8[,] DATA_DEFAULT_9 = {
+            {1, 2, 3, 4, 5, 6, 7, 8, 9},
+            {7, 8, 9, 1, 2, 3, 4, 5, 6},
+            {4, 5, 6, 7, 8, 9, 1, 2, 3},
+            {9, 1, 2, 3, 4, 5, 6, 7, 8},
+            {6, 7, 8, 9, 1, 2, 3, 4, 5},
+            {3, 4, 5, 6, 7, 8, 9, 1, 2},
+            {8, 9, 1, 2, 3, 4, 5, 6, 7},
+            {5, 6, 7, 8, 9, 1, 2, 3, 4},
+            {2, 3, 4, 5, 6, 7, 8, 9, 1}
+        };
+        private const uint8[,] DATA_DEFAULT_16 = {
+            {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16},
+            {13, 14, 15, 16, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12},
+            {9, 10, 11, 12, 13, 14, 15, 16, 1, 2, 3, 4, 5, 6, 7, 8},
+            {5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 1, 2, 3, 4},
+            {16, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15},
+            {12, 13, 14, 15, 16, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
+            {8, 9, 10, 11, 12, 13, 14, 15, 16, 1, 2, 3, 4, 5, 6, 7},
+            {4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 1, 2, 3},
+            {15, 16, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14},
+            {11, 12, 13, 14, 15, 16, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10},
+            {7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 1, 2, 3, 4, 5, 6},
+            {3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 1, 2},
+            {14, 15, 16, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13},
+            {10, 11, 12, 13, 14, 15, 16, 1, 2, 3, 4, 5, 6, 7, 8, 9},
+            {6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 1, 2, 3, 4, 5},
+            {2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 1},
+        };
 
         private Cell[,] cells;
-        private const int MAX_FIXED_AREA = 3;
+        private int max_fixed_area;
+        private int length;
+        private int block_length;
         
         private void init_algorithm() {
+            uint8[,] data = DATA_DEFAULT_9;
+            if (size == MODEL_16) {
+                data = DATA_DEFAULT_16;
+            }
             Random.set_seed((uint32) new DateTime.now_local().to_unix());
-            uint8[,] data = {
-                {1, 2, 3, 4, 5, 6, 7, 8, 9},
-                {7, 8, 9, 1, 2, 3, 4, 5, 6},
-                {4, 5, 6, 7, 8, 9, 1, 2, 3},
-                {9, 1, 2, 3, 4, 5, 6, 7, 8},
-                {6, 7, 8, 9, 1, 2, 3, 4, 5},
-                {3, 4, 5, 6, 7, 8, 9, 1, 2},
-                {8, 9, 1, 2, 3, 4, 5, 6, 7},
-                {5, 6, 7, 8, 9, 1, 2, 3, 4},
-                {2, 3, 4, 5, 6, 7, 8, 9, 1}
-            };
-            uint8[] randomizer = new uint8[9] {0, 0, 0, 0, 0, 0, 0, 0, 0};
-            for (int i = 0; i < 9; i++) {
+            uint8[] randomizer = new uint8[length];
+            for (int i = 0; i < length; i++) {
                 do {
-                    uint8 r = (uint8) Random.int_range(1, 10);
+                    uint8 r = (uint8) Random.int_range(1, length + 1);
                     if (!(r in randomizer)) {
                         randomizer[i] = r;
                         break;
@@ -62,62 +97,62 @@ namespace Aho {
                 } while (true);
             }
             
-            for (int i = 0; i < 3;) {
-                int from = Random.int_range(0, 3);
-                int to = Random.int_range(0, 3);
+            for (int i = 0; i < block_length;) {
+                int from = Random.int_range(0, block_length);
+                int to = Random.int_range(0, block_length);
                 if (from != to) {
                     swap_values(data, from, to);
                     i++;
                 }
             }
             
-            int rotate_count = Random.int_range(0, 10);
+            int rotate_count = Random.int_range(0, length + 1);
             for (int i = 0; i < rotate_count; i++) {
                 rotate_values(data);
             }
             
-            int rev_h_count = Random.int_range(0, 10);
+            int rev_h_count = Random.int_range(0, length + 1);
             for (int i = 0; i < rev_h_count; i++) {
-                int block_index = Random.int_range(0, 3);
-                int start_index = block_index * 3;
-                int end_index = block_index * 3 + 3;
+                int block_index = Random.int_range(0, block_length);
+                int start_index = block_index * block_length;
+                int end_index = block_index * block_length + block_length;
                 revert_horizontally(data, start_index, end_index);
             }
             
-            int rev_v_count = Random.int_range(0, 10);
+            int rev_v_count = Random.int_range(0, length + 1);
             for (int i = 0; i < rev_v_count; i++) {
-                int block_index = Random.int_range(0, 3);
-                int start_index = block_index * 3;
-                int end_index = block_index * 3 + 3;
+                int block_index = Random.int_range(0, block_length);
+                int start_index = block_index * block_length;
+                int end_index = block_index * block_length + block_length;
                 revert_vertically(data, start_index, end_index);
             }
             
             int slide_v_count = Random.int_range(0, 10);
             for (int i = 0; i < slide_v_count; i++) {
-                int block_index = Random.int_range(0, 3);
-                int start_index = block_index * 3;
-                int end_index = block_index * 3 + 3;
+                int block_index = Random.int_range(0, block_length);
+                int start_index = block_index * block_length;
+                int end_index = block_index * block_length + block_length;
                 slide_vertically(data, start_index, end_index);
             }
             
-            int slide_h_count = Random.int_range(0, 10);
+            int slide_h_count = Random.int_range(0, length + 1);
             for (int i = 0; i < slide_h_count; i++) {
-                int block_index = Random.int_range(0, 3);
-                int start_index = block_index * 3;
-                int end_index = block_index * 3 + 3;
+                int block_index = Random.int_range(0, block_length);
+                int start_index = block_index * block_length;
+                int end_index = block_index * block_length + block_length;
                 slide_horizontally(data, start_index, end_index);
             }
             
-            cells = new Cell[9, 9];
-            for (int i = 0; i < 9; i++) {
-                for (int j = 0; j < 9; j++) {
+            cells = new Cell[length, length];
+            for (int i = 0; i < length; i++) {
+                for (int j = 0; j < length; j++) {
                     cells[i, j].correct_value = randomizer[data[i, j] - 1];
                     int fixed_in_area = count_fixed_in_area(i, j);
                     int rest_in_area = count_rest_in_area(i, j);
-                    if (fixed_in_area >= MAX_FIXED_AREA) {
+                    if (fixed_in_area >= max_fixed_area) {
                         cells[i, j].status = EMPTY;
                     } else {
-                        if (rest_in_area <= (MAX_FIXED_AREA - fixed_in_area)) {
+                        if (rest_in_area <= (max_fixed_area - fixed_in_area)) {
                             cells[i, j].status = FIXED;
                         } else {
                             if (Random.boolean()) {
@@ -134,47 +169,47 @@ namespace Aho {
 
         private void swap_values(uint8[,] src_data, int from, int to) {
             debug("swap_values: from = %d, to = %d", from, to);
-            uint8[,] dest = new uint8[9, 9];
-            for (int i = 0; i < 9; i++) {
+            uint8[,] dest = new uint8[length, length];
+            for (int i = 0; i < length; i++) {
                 int k = i;
-                if (i / 3 == from) {
-                    k = to * 3 + i % 3;
-                } else if (i / 3 == to) {
-                    k =     from * 3 + i % 3;
+                if (i / block_length == from) {
+                    k = to * block_length + i % block_length;
+                } else if (i / block_length == to) {
+                    k =     from * block_length + i % block_length;
                 }
-                for (int j = 0; j < 9; j++) {
+                for (int j = 0; j < length; j++) {
                     dest[k, j] = src_data[i, j];
                 }
             }
-            for (int i = 0; i < 9; i++) {
-                for (int j = 0; j < 9; j++) {
+            for (int i = 0; i < length; i++) {
+                for (int j = 0; j < length; j++) {
                     src_data[i, j] = dest[i, j];
                 }
             }
         }
 
         private void rotate_values(uint8[,] data) {
-            uint8[,] temp = new uint8[9, 9];
-            for (int i = 0; i < 9; i++) {
-                for (int j = 0; j < 9; j++) {
-                    temp[j, 8 - i] = data[i, j];
+            uint8[,] temp = new uint8[length, length];
+            for (int i = 0; i < length; i++) {
+                for (int j = 0; j < length; j++) {
+                    temp[j, length - 1 - i] = data[i, j];
                 }
             }
-            for (int i = 0; i < 9; i++) {
-                for (int j = 0; j < 9; j++) {
+            for (int i = 0; i < length; i++) {
+                for (int j = 0; j < length; j++) {
                     data[i, j] = temp[i, j];
                 }
             }
         }
         
         private void revert_horizontally(uint8[,] data, int start_index, int end_index) {
-            uint8[,] temp = new uint8[9, 9];
-            for (int i = 0; i < 9; i++) {
+            uint8[,] temp = new uint8[length, length];
+            for (int i = 0; i < length; i++) {
                 for (int j = start_index, k = end_index - 1; j < end_index; j++, k--) {
                     temp[i, k] = data[i, j];
                 }
             }
-            for (int i = 0; i < 9; i++) {
+            for (int i = 0; i < length; i++) {
                 for (int j = start_index; j < end_index; j++) {
                     data[i, j] = temp[i, j];
                 }
@@ -182,22 +217,22 @@ namespace Aho {
         }
 
         private void revert_vertically(uint8[,] data, int start_index, int end_index) {
-            uint8[,] temp = new uint8[9, 9];
+            uint8[,] temp = new uint8[length, length];
             for (int i = start_index, k = end_index - 1; i < end_index; i++, k--) {
-                for (int j = 0; j < 9; j++) {
+                for (int j = 0; j < length; j++) {
                     temp[k, j] = data[i, j];
                 }
             }
             for (int i = start_index; i < end_index; i++) {
-                for (int j = 0; j < 9; j++) {
+                for (int j = 0; j < length; j++) {
                     data[i, j] = temp[i, j];
                 }
             }
         }
         
         private void slide_horizontally(uint8[,] data, int start_index, int end_index) {
-            uint8[,] temp = new uint8[9, 9];
-            for (int i = 0; i < 9; i++) {
+            uint8[,] temp = new uint8[length, length];
+            for (int i = 0; i < length; i++) {
                 for (int j = start_index; j < end_index; j++) {
                     if (j + 1 == end_index) {
                         temp[i, start_index] = data[i, j];
@@ -206,7 +241,7 @@ namespace Aho {
                     }
                 }
             }
-            for (int i = 0; i < 9; i++) {
+            for (int i = 0; i < length; i++) {
                 for (int j = start_index; j < end_index; j++) {
                     data[i, j] = temp[i, j];
                 }
@@ -214,9 +249,9 @@ namespace Aho {
         }
 
         private void slide_vertically(uint8[,] data, int start_index, int end_index) {
-            uint8[,] temp = new uint8[9, 9];
+            uint8[,] temp = new uint8[length, length];
             for (int i = start_index; i < end_index; i++) {
-                for (int j = 0; j < 9; j++) {
+                for (int j = 0; j < length; j++) {
                     if (i + 1 == end_index) {
                         temp[start_index, j] = data[i, j];
                     } else {
@@ -225,17 +260,17 @@ namespace Aho {
                 }
             }
             for (int i = start_index; i < end_index; i++) {
-                for (int j = 0; j < 9; j++) {
+                for (int j = 0; j < length; j++) {
                     data[i, j] = temp[i, j];
                 }
             }
         }
         
         private int count_fixed_in_area(int row, int col) {
-            int x1 = row / 3 * 3;
-            int x2 = x1 + 3;
-            int y1 = col / 3 * 3;
-            int y2 = y1 + 3;
+            int x1 = row / block_length * block_length;
+            int x2 = x1 + block_length;
+            int y1 = col / block_length * block_length;
+            int y2 = y1 + block_length;
             int count = 0;
             for (int i = x1; i < x2; i++) {
                 for (int j = y1; j < y2; j++) {
@@ -248,14 +283,24 @@ namespace Aho {
         }
 
         private int count_rest_in_area(int row, int col) {
-            int x1 = row / 3 * 3;
-            int x2 = x1 + 3;
-            int y1 = col / 3 * 3;
-            int y2 = y1 + 3;
-            return (x2 - row - 1) * 3 + (y2 - 1 - col) + 1;
+            int x1 = row / block_length * block_length;
+            int x2 = x1 + block_length;
+            int y1 = col / block_length * block_length;
+            int y2 = y1 + block_length;
+            return (x2 - row - 1) * block_length + (y2 - 1 - col) + 1;
         }
 
-        public SudokuModel() {
+        public SudokuModel(ModelSize size) {
+            this.size = size;
+            if (size == MODEL_9) {
+                length = 9;
+                max_fixed_area = 3;
+                block_length = 3;
+            } else {
+                length = 16;
+                max_fixed_area = 5;
+                block_length = 4;
+            }
             init_algorithm();
         }
 
@@ -298,7 +343,7 @@ namespace Aho {
         }
 
         private bool is_not_in_row(uint8 val, int row, int col, bool is_editing) {
-            for (int j = 0; j < 9; j++) {
+            for (int j = 0; j < length; j++) {
                 if (is_editing) {
                     if (cells[row, j].status == FIXED) {
                         if (val == cells[row, j].correct_value) {
@@ -319,7 +364,7 @@ namespace Aho {
         }
 
         private bool is_not_in_column(uint8 val, int row, int col, bool is_editing) {
-            for (int i = 0; i < 9; i++) {
+            for (int i = 0; i < length; i++) {
                 if (is_editing) {
                     if (cells[i, col].status == FIXED) {
                         if (val == cells[i, col].correct_value) {
@@ -340,10 +385,10 @@ namespace Aho {
         }
 
         private bool is_not_in_area(uint8 val, int row, int col, bool is_editing) {
-            int x1 = row / 3 * 3;
-            int x2 = x1 + 3;
-            int y1 = col / 3 * 3;
-            int y2 = y1 + 3;
+            int x1 = row / block_length * block_length;
+            int x2 = x1 + block_length;
+            int y1 = col / block_length * block_length;
+            int y2 = y1 + block_length;
             for (int i = x1; i < x2; i++) {
                 for (int j = y1; j < y2; j++) {
                     if (is_editing) {
@@ -367,8 +412,8 @@ namespace Aho {
         }
 
         private bool is_completed() {
-            for (int i = 0; i < 9; i++) {
-                for (int j = 0; j < 9; j++) {
+            for (int i = 0; i < length; i++) {
+                for (int j = 0; j < length; j++) {
                     uint8 num = 0;
                     if (cells[i, j].status == FIXED) {
                         num = cells[i, j].correct_value;
@@ -384,8 +429,8 @@ namespace Aho {
         }
 
         public bool check_is_resetting_ok() {
-            for (int i = 0; i < 9; i++) {
-                for (int j = 0; j < 9; j++) {
+            for (int i = 0; i < length; i++) {
+                for (int j = 0; j < length; j++) {
                     uint8 num = cells[i, j].correct_value;
                     if (num == 0 || !is_not_in_row(num, i, j, false) || is_not_in_column(num, i, j, false) || is_not_in_area(num, i, j, false)) {
                         return false;
@@ -429,10 +474,12 @@ namespace Aho {
             }
         }
         private const int MARGIN = 0;
-        private const int CELL_WIDTH = 50;
-        private const int CELL_HEIGHT = 50;
-        private const int CELL_BORDER_WIDTH_THIN = 2;
-        private const int CELL_BORDER_WIDTH_FAT = 4;
+        private int length = 9;
+        private int cell_width = 50;
+        private int cell_height = 50;
+        private int border_width_thin = 2;
+        private int border_width_fat = 4;
+        private int block_length = 3;
         private const Gdk.RGBA HOVER_COLOR = {0.95, 0.9, 0.6, 1.0};
         private const Gdk.RGBA SELECTED_COLOR = {1.0, 0.5, 0.2, 1.0};
         private const Gdk.RGBA HIGHLIGHT_BG = {0.6, 0.5, 0.2, 1.0};
@@ -452,20 +499,46 @@ namespace Aho {
         private Theme theme_value = LIGHT;
         private double mouse_position_x;
         private double mouse_position_y;
+        private int font_size;
         public SudokuWidget() {
+            model = new SudokuModel(MODEL_9);
             init();
+            add_events (Gdk.EventMask.BUTTON_PRESS_MASK
+                      | Gdk.EventMask.BUTTON_RELEASE_MASK
+                      | Gdk.EventMask.POINTER_MOTION_MASK
+                      | Gdk.EventMask.KEY_PRESS_MASK
+                      | Gdk.EventMask.LEAVE_NOTIFY_MASK);
         }
 
         public SudokuWidget.with_model(SudokuModel model) {
-            this.model = model;
-            model.completed.connect(() => {
-                completed();
-            });
-            init();
+            bind_model(model);
+            add_events (Gdk.EventMask.BUTTON_PRESS_MASK
+                      | Gdk.EventMask.BUTTON_RELEASE_MASK
+                      | Gdk.EventMask.POINTER_MOTION_MASK
+                      | Gdk.EventMask.KEY_PRESS_MASK
+                      | Gdk.EventMask.LEAVE_NOTIFY_MASK);
         }
 
         public void bind_model(SudokuModel model) {
             this.model = model;
+            if (model.size == MODEL_9) {
+                length = 9;
+                block_length = 3;
+                cell_width = 50;
+                cell_height = 50;
+                border_width_fat = 4;
+                border_width_thin = 2;
+                font_size = 32;
+            } else {
+                length = 16;
+                block_length = 4;
+                cell_width = 30;
+                cell_height = 30;
+                border_width_fat = 3;
+                border_width_thin = 1;
+                font_size = 22;
+            }
+            init();
             model.completed.connect(() => {
                 completed();
             });
@@ -479,52 +552,62 @@ namespace Aho {
         }
 
         private void init() {
-            rects = new Gdk.Rectangle[10, 10];
-            int x[10];
-            int[] y = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-            x[0] = MARGIN + CELL_BORDER_WIDTH_FAT;
-            x[1] = x[0] + CELL_WIDTH + CELL_BORDER_WIDTH_THIN;
-            x[2] = x[1] + CELL_WIDTH + CELL_BORDER_WIDTH_THIN;
-            x[3] = x[2] + CELL_WIDTH + CELL_BORDER_WIDTH_FAT;
-            x[4] = x[3] + CELL_WIDTH + CELL_BORDER_WIDTH_THIN;
-            x[5] = x[4] + CELL_WIDTH + CELL_BORDER_WIDTH_THIN;
-            x[6] = x[5] + CELL_WIDTH + CELL_BORDER_WIDTH_FAT;
-            x[7] = x[6] + CELL_WIDTH + CELL_BORDER_WIDTH_THIN;
-            x[8] = x[7] + CELL_WIDTH + CELL_BORDER_WIDTH_THIN;
-            x[9] = x[8] + CELL_WIDTH + CELL_BORDER_WIDTH_FAT;
-            y[0] = MARGIN + CELL_BORDER_WIDTH_FAT;
-            y[1] = y[0] + CELL_HEIGHT + CELL_BORDER_WIDTH_THIN;
-            y[2] = y[1] + CELL_HEIGHT + CELL_BORDER_WIDTH_THIN;
-            y[3] = y[2] + CELL_HEIGHT + CELL_BORDER_WIDTH_FAT;
-            y[4] = y[3] + CELL_HEIGHT + CELL_BORDER_WIDTH_THIN;
-            y[5] = y[4] + CELL_HEIGHT + CELL_BORDER_WIDTH_THIN;
-            y[6] = y[5] + CELL_HEIGHT + CELL_BORDER_WIDTH_FAT;
-            y[7] = y[6] + CELL_HEIGHT + CELL_BORDER_WIDTH_THIN;
-            y[8] = y[7] + CELL_HEIGHT + CELL_BORDER_WIDTH_THIN;
-            y[9] = y[8] + CELL_HEIGHT + CELL_BORDER_WIDTH_FAT;
-            for (int i = 0; i < 9; i++) {
-                for (int j = 0; j < 9; j++) {
+            rects = new Gdk.Rectangle[length + 1, length + 1];
+            int[] x = new int[length + 1];
+            int[] y = new int[length + 1];
+            int n = 0;
+            x[n] = MARGIN + border_width_fat;
+            for (int i = 0; i < block_length; i++) {
+                for (int j = 0; j < block_length - 1; j++) {
+                    x[n + 1] = x[n] + cell_width + border_width_thin;
+                    n++;
+                }
+                x[n + 1] = x[n] + cell_width + border_width_fat;
+                n++;
+            }
+            n = 0;
+            y[n] = MARGIN + border_width_fat;
+            for (int i = 0; i < block_length; i++) {
+                for (int j = 0; j < block_length - 1; j++) {
+                    y[n + 1] = y[n] + cell_height + border_width_thin;
+                    n++;
+                }
+                y[n + 1] = y[n] + cell_height + border_width_fat;
+                n++;
+            }
+            for (int i = 0; i < length; i++) {
+                for (int j = 0; j < length; j++) {
                     rects[i, j].x = x[j];
-                    rects[i, j].width = CELL_WIDTH;
+                    rects[i, j].width = cell_width;
                     rects[i, j].y = y[i];
-                    rects[i, j].height = CELL_HEIGHT;
+                    rects[i, j].height = cell_height;
                 }
             }
             rect = Cairo.Rectangle() {
                 x = (double) MARGIN,
                 y = (double) MARGIN,
-                width = (double) x[9],
-                height = (double) y[9]
+                width = (double) x[length],
+                height = (double) y[length]
             };
-            add_events (Gdk.EventMask.BUTTON_PRESS_MASK
-                      | Gdk.EventMask.BUTTON_RELEASE_MASK
-                      | Gdk.EventMask.POINTER_MOTION_MASK
-                      | Gdk.EventMask.KEY_PRESS_MASK
-                      | Gdk.EventMask.LEAVE_NOTIFY_MASK);
+            width_request = x[length];
+            height_request = y[length];
         }
 
-        public void put(int number) {
-            bool success = model.set_temp_value(selected_position[0], selected_position[1], number);
+        public void put_value(int number) {
+            bool success = false;
+            if (model.size == MODEL_9) {
+                if (0 < number && number < 10) {
+                    success = model.set_temp_value(selected_position[0], selected_position[1], number);
+                } else {
+                    success = false;
+                }
+            } else {
+                if (0 < number && number < 17) {
+                    success = model.set_temp_value(selected_position[0], selected_position[1], number);
+                } else {
+                    success = false;
+                }
+            }
             if (success) {
                 selected_position[0] = -1;
                 selected_position[1] = -1;
@@ -548,8 +631,8 @@ namespace Aho {
 
             if (mouse_hover_position[0] >= 0 && mouse_hover_position[1] >= 0) {
                 Cairo.Pattern pattern_bg = new Cairo.Pattern.radial(mouse_position_x, mouse_position_y, 0,
-                        mouse_position_x, mouse_position_y, CELL_WIDTH * 5.0);
-                pattern_bg.add_color_stop_rgb(CELL_WIDTH / 2, border_color.red, border_color.green, border_color.blue);
+                        mouse_position_x, mouse_position_y, cell_width * 5.0);
+                pattern_bg.add_color_stop_rgb(cell_width / 2, border_color.red, border_color.green, border_color.blue);
                 pattern_bg.add_color_stop_rgb(0, border_highlight_color.red, border_highlight_color.green, border_highlight_color.blue);
                 cairo.set_source(pattern_bg);
             } else {
@@ -560,25 +643,25 @@ namespace Aho {
             cairo.rectangle(rect.x, rect.y, rect.width - rect.x, rect.height - rect.y);
             cairo.fill();
 
-            cairo.select_font_face("Sans", NORMAL, NORMAL);
-            cairo.set_font_size(24);
-            for (int i = 0; i < 9; i++) {
-                for (int j = 0; j < 9; j++) {
+            cairo.select_font_face("Serif", NORMAL, NORMAL);
+            cairo.set_font_size(font_size);
+            for (int i = 0; i < length; i++) {
+                for (int j = 0; j < length; j++) {
                     if (model.get_status(i, j) == FIXED) {
                         cairo.set_source_rgb(cell_color.red, cell_color.green, cell_color.blue);
                     } else if (is_debug_mode) {
                         cairo.set_source_rgb(DEBUG_BG.red, DEBUG_BG.green, DEBUG_BG.blue);
                     } else {
                         if (is_selected(i, j)) {
-                            Cairo.Pattern pattern = new Cairo.Pattern.radial(rects[i, j].x + CELL_WIDTH / 2, rects[i, j].y + CELL_HEIGHT / 2, 0,
-                                    rects[i, j].x + CELL_WIDTH / 2, rects[i, j].y + CELL_HEIGHT / 2, CELL_WIDTH * 2.0);
-                            pattern.add_color_stop_rgb(CELL_WIDTH / 2, cell_color.red, cell_color.green, cell_color.blue);
+                            Cairo.Pattern pattern = new Cairo.Pattern.radial(rects[i, j].x + cell_width / 2, rects[i, j].y + cell_height / 2, 0,
+                                    rects[i, j].x + cell_width / 2, rects[i, j].y + cell_height / 2, cell_width * 2.0);
+                            pattern.add_color_stop_rgb(cell_width / 2, cell_color.red, cell_color.green, cell_color.blue);
                             pattern.add_color_stop_rgb(0, SELECTED_COLOR.red, SELECTED_COLOR.green, SELECTED_COLOR.blue);
                             cairo.set_source(pattern);
                         } else if (is_in_highlight(i, j)) {
                             Cairo.Pattern pattern = new Cairo.Pattern.radial(mouse_position_x, mouse_position_y, 0,
-                                    mouse_position_x, mouse_position_y, CELL_WIDTH * 3.0);
-                            pattern.add_color_stop_rgb(CELL_WIDTH / 2, cell_color.red, cell_color.green, cell_color.blue);
+                                    mouse_position_x, mouse_position_y, cell_width * 3.0);
+                            pattern.add_color_stop_rgb(cell_width / 2, cell_color.red, cell_color.green, cell_color.blue);
                             pattern.add_color_stop_rgb(0, HOVER_COLOR.red, HOVER_COLOR.green, HOVER_COLOR.blue);
                             cairo.set_source(pattern);
                         } else if (model.get_temp_value(i, j) > 0) {
@@ -595,8 +678,8 @@ namespace Aho {
                     cairo.rectangle(
                         (double) rects[i, j].x,
                         (double) rects[i, j].y,
-                        CELL_WIDTH,
-                        CELL_HEIGHT
+                        cell_width,
+                        cell_height
                     );
                     cairo.fill();
 
@@ -617,10 +700,10 @@ namespace Aho {
                         }
                     }
                     if (num > 0) {
-                        string num_s = num.to_string();
+                        string num_s = LETTERS[num - 1];
                         cairo.text_extents(num_s, out extents);
-                        double x = (CELL_WIDTH / 2) - (extents.width / 2 + extents.x_bearing);
-                        double y = (CELL_HEIGHT / 2) - (extents.height / 2 + extents.y_bearing);
+                        double x = (cell_width / 2) - (extents.width / 2 + extents.x_bearing);
+                        double y = (cell_height / 2) - (extents.height / 2 + extents.y_bearing);
                         cairo.move_to(rects[i, j].x + x, rects[i, j].y + y);
                         cairo.show_text(num_s);
                     }
@@ -632,10 +715,10 @@ namespace Aho {
         public override bool button_press_event(Gdk.EventButton event) {
             int x = (int) event.x;
             int y = (int) event.y;
-            for (int i = 0; i < 9; i++) {
-                for (int j = 0; j < 9; j++) {
-                    if (rects[i, j].x <= x && x <= rects[i, j].x + CELL_WIDTH
-                            && rects[i, j].y <= y && y <= rects[i, j].y + CELL_HEIGHT) {
+            for (int i = 0; i < length; i++) {
+                for (int j = 0; j < length; j++) {
+                    if (rects[i, j].x <= x && x <= rects[i, j].x + cell_width
+                            && rects[i, j].y <= y && y <= rects[i, j].y + cell_height) {
                         if (selected_position[0] == i && selected_position[1] == j) {
                             if (model.get_status(i, j) != FIXED) {
                                 selected_position[0] = -1;
@@ -674,10 +757,10 @@ namespace Aho {
         public override bool motion_notify_event(Gdk.EventMotion event) {
             int x = (int) event.x;
             int y = (int) event.y;
-            for (int i = 0; i < 9; i++) {
-                for (int j = 0; j < 9; j++) {
-                    if (rects[i, j].x <= x && x <= rects[i, j].x + CELL_WIDTH
-                            && rects[i, j].y <= y && y <= rects[i, j].y + CELL_HEIGHT) {
+            for (int i = 0; i < length; i++) {
+                for (int j = 0; j < length; j++) {
+                    if (rects[i, j].x <= x && x <= rects[i, j].x + cell_width
+                            && rects[i, j].y <= y && y <= rects[i, j].y + cell_height) {
                         if (mouse_hover_position[0] != i || mouse_hover_position[1] != j) {
                             mouse_hover_position[0] = i;
                             mouse_hover_position[1] = j;
@@ -737,18 +820,38 @@ GPLv3 Copyright (C) 2021 Takayuki Tanaka <https://github.com/aharotias2>
     }
     var app = new Gtk.Application("com.github.aharotias2.sudoku", FLAGS_NONE);
     app.activate.connect(() => {
-        Aho.SudokuModel? model = new Aho.SudokuModel();
         Aho.SudokuWidget? widget = null;
         Gtk.Label? message_label = null;
+        Gtk.ButtonBox? button_box_9 = null;
+        Gtk.Box? button_box_16 = null;
+        Gtk.Button? reset_button = null;
         var window = new Gtk.ApplicationWindow(app);
         {
             var header_bar = new Gtk.HeaderBar();
             {
-                var reset_button = new Gtk.Button.with_label("Reset");
+                var hard_switch = new Gtk.Switch();
+                {
+                    hard_switch.tooltip_text = "Enable the hard mode";
+                    hard_switch.state_set.connect((state) => {
+                        reset_button.clicked();
+                        return false;
+                    });
+                }
+                
+                reset_button = new Gtk.Button.with_label("Reset");
                 {
                     reset_button.clicked.connect(() => {
-                        model = new Aho.SudokuModel();
-                        widget.bind_model(model);
+                        Aho.SudokuModel? new_model = null;
+                        if (hard_switch.active) {
+                            new_model = new Aho.SudokuModel(MODEL_16);
+                            button_box_16.visible = true;
+                            button_box_9.visible = false;
+                        } else {
+                            new_model = new Aho.SudokuModel(MODEL_9);
+                            button_box_9.visible = true;
+                            button_box_16.visible = false;
+                        }
+                        widget.bind_model(new_model);
                         if (widget.check_is_resetting_ok()) {
                             message_label.label = @"<span color=\"red\"><b>リセットがうまくいっていません。</b></span>";
                             Timeout.add(3000, () => {
@@ -774,6 +877,7 @@ GPLv3 Copyright (C) 2021 Takayuki Tanaka <https://github.com/aharotias2>
                     });
                 }
                 
+                header_bar.pack_start(hard_switch);
                 header_bar.pack_start(reset_button);
                 header_bar.pack_end(switch_button);
                 header_bar.show_close_button = true;
@@ -804,6 +908,7 @@ GPLv3 Copyright (C) 2021 Takayuki Tanaka <https://github.com/aharotias2>
                     box_2.margin = 10;
                 }
 
+                Aho.SudokuModel? model = new Aho.SudokuModel(MODEL_9);
                 widget = new Aho.SudokuWidget.with_model(model);
                 {
                     widget.require_error_dialog.connect((message) => {
@@ -827,17 +932,17 @@ GPLv3 Copyright (C) 2021 Takayuki Tanaka <https://github.com/aharotias2>
                     }
                 }
 
-                var box_3 = new Gtk.ButtonBox(HORIZONTAL);
+                button_box_9 = new Gtk.ButtonBox(HORIZONTAL);
                 {
                     for (int i = 0; i < 9; i++) {
                         var number_button = new Gtk.Button.with_label((i + 1).to_string());
                         {
                             int number = i + 1;
                             number_button.clicked.connect(() => {
-                                widget.put(number);
+                                widget.put_value(number);
                             });
                         }
-                        box_3.pack_start(number_button);
+                        button_box_9.pack_start(number_button);
                     }
                     var del_button = new Gtk.Button.from_icon_name("edit-delete-symbolic");
                     {
@@ -846,14 +951,48 @@ GPLv3 Copyright (C) 2021 Takayuki Tanaka <https://github.com/aharotias2>
                         });
                     }
 
-                    box_3.pack_start(del_button);
-                    box_3.layout_style = EXPAND;
-                    box_3.margin = 10;
+                    button_box_9.pack_start(del_button);
+                    button_box_9.layout_style = EXPAND;
+                    button_box_9.margin = 10;
+                }
+
+                button_box_16 = new Gtk.Box(VERTICAL, 5);
+                {
+                    for (int i = 0; i < 2; i++) {
+                        var button_box_16_inner = new Gtk.ButtonBox(HORIZONTAL);
+                        {
+                            for (int j = 0; j < 8; j++) {
+                                var number_button = new Gtk.Button.with_label(Aho.LETTERS[i * 8 + j]);
+                                {
+                                    int number = i * 8 + j + 1;
+                                    number_button.clicked.connect(() => {
+                                        widget.put_value(number);
+                                    });
+                                }
+                                button_box_16_inner.pack_start(number_button);
+                            }
+
+                            var del_button = new Gtk.Button.from_icon_name("edit-delete-symbolic");
+                            {
+                                del_button.clicked.connect(() => {
+                                    widget.delete_value();
+                                });
+                            }
+
+                            button_box_16_inner.pack_start(del_button);
+                            button_box_16_inner.layout_style = EXPAND;
+                        }
+                        
+                        button_box_16.pack_start(button_box_16_inner, false, false);
+                    }
+                    
+                    button_box_16.margin = 10;
                 }
 
                 box_1.pack_start(box_2, false, false);
                 box_1.pack_start(widget, true, true);
-                box_1.pack_start(box_3, false, false);
+                box_1.pack_start(button_box_9, false, false);
+                box_1.pack_start(button_box_16, false, false);
             }
             
             window.set_titlebar(header_bar);
@@ -896,7 +1035,27 @@ GPLv3 Copyright (C) 2021 Takayuki Tanaka <https://github.com/aharotias2>
                       case Gdk.Key.@9:
                         num = 9;
                         break;
+                      case Gdk.Key.a:
+                        num = 10;
+                        break;
+                      case Gdk.Key.b:
+                        num = 11;
+                        break;
+                      case Gdk.Key.c:
+                        num = 12;
+                        break;
+                      case Gdk.Key.d:
+                        num = 13;
+                        break;
+                      case Gdk.Key.e:
+                        num = 14;
+                        break;
+                      case Gdk.Key.f:
+                        num = 15;
+                        break;
                       case Gdk.Key.@0:
+                        num = 16;
+                        break;
                       case Gdk.Key.BackSpace:
                         num = 0;
                         break;
@@ -904,7 +1063,7 @@ GPLv3 Copyright (C) 2021 Takayuki Tanaka <https://github.com/aharotias2>
                         return false;
                     }
                 }
-                widget.put(num);
+                widget.put_value(num);
                 return true;
             });
             
@@ -914,6 +1073,7 @@ GPLv3 Copyright (C) 2021 Takayuki Tanaka <https://github.com/aharotias2>
         }
         
         window.show_all();
+        button_box_16.visible = false;
     });
     
     return app.run(null);
