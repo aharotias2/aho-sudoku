@@ -25,17 +25,21 @@ namespace Aho {
         MODEL_16;
         
         public int block_length() {
-            if (this == MODEL_9) {
+            switch (this) {
+              default:
+              case MODEL_9:
                 return 3;
-            } else {
+              case MODEL_16:
                 return 4;
             }
         }
         
         public int length() {
-            if (this == MODEL_9) {
+            switch (this) {
+              default:
+              case MODEL_9:
                 return 9;
-            } else {
+              case MODEL_16:
                 return 16;
             }
         }
@@ -454,7 +458,7 @@ namespace Aho {
                     } else {
                         num = cells[i, j].temp_value;
                     }
-                    if (num == 0 || !is_not_in_row(num, i, j, true) || is_not_in_column(num, i, j, true) || is_not_in_area(num, i, j, true)) {
+                    if (num == 0 || !is_not_in_row(num, i, j, true) || !is_not_in_column(num, i, j, true) || !is_not_in_area(num, i, j, true)) {
                         return false;
                     }
                 }
