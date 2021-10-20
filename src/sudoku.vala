@@ -22,7 +22,23 @@ namespace Aho {
 
     public enum ModelSize {
         MODEL_9,
-        MODEL_16
+        MODEL_16;
+        
+        public int block_length() {
+            if (this == MODEL_9) {
+                return 3;
+            } else {
+                return 4;
+            }
+        }
+        
+        public int length() {
+            if (this == MODEL_9) {
+                return 9;
+            } else {
+                return 16;
+            }
+        }
     }
     
     public enum CellStatus {
@@ -76,10 +92,66 @@ namespace Aho {
         };
 
         private Cell[,] cells;
-        private int max_fixed_area;
         private int length;
         private int block_length;
+
+        public SudokuModel(ModelSize size) {
+            this.size = size;
+            length = size.length();
+            block_length = size.block_length();
+            init_algorithm();
+        }
+
+        public int get_correct_value(int x, int y) {
+            return cells[x, y].correct_value;
+        }
+
+        public int get_temp_value(int x, int y) {
+            if (cells[x, y].status == EDITED) {
+                return cells[x, y].temp_value;
+            } else {
+                return 0;
+            }
+        }
+
+        public bool set_temp_value(int x, int y, int val) {
+            if (cells[x, y].status != FIXED) {
+                if (val == 0) {
+                    cells[x, y].temp_value = 0;
+                    cells[x, y].status = EMPTY;
+                    return true;
+                } else if (is_not_in_row((uint8) val, x, y, true) && is_not_in_column((uint8) val, x, y, true)
+                        && is_not_in_area((uint8) val, x, y, true)) {
+                    cells[x, y].temp_value = (uint8) val;
+                    cells[x, y].status = EDITED;
+                    if (is_completed()) {
+                        completed();
+                    }
+                    return true;
+                } else {
+                    return false;
+                }
+            } else {
+                return true;
+            }
+        }
+
+        public CellStatus get_status(int x, int y) {
+            return cells[x, y].status;
+        }
         
+        public bool check_is_resetting_ok() {
+            for (int i = 0; i < length; i++) {
+                for (int j = 0; j < length; j++) {
+                    uint8 num = cells[i, j].correct_value;
+                    if (num == 0 || !is_not_in_row(num, i, j, false) || is_not_in_column(num, i, j, false) || is_not_in_area(num, i, j, false)) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
         private void init_algorithm() {
             uint8[,] data = DATA_DEFAULT_9;
             if (size == MODEL_16) {
@@ -97,65 +169,79 @@ namespace Aho {
                 } while (true);
             }
             
-            for (int i = 0; i < block_length;) {
-                int from = Random.int_range(0, block_length);
-                int to = Random.int_range(0, block_length);
-                if (from != to) {
-                    swap_values(data, from, to);
-                    i++;
+            int time_loop = Random.int_range(100, 1000);
+            for (int i = 0; i < time_loop; i++) {
+                int random_value = Random.int_range(0, 6);
+                switch (random_value) {
+                  case 0:
+                    {
+                        int from = Random.int_range(0, length / block_length - 1);
+                        int to = Random.int_range(1, length / block_length);
+                        if (from < to) {
+                            swap_values(data, from, to);
+                        }
+                    }
+                    break;
+                  case 1:
+                    rotate_values(data);
+                    break;
+                  case 2:
+                    {
+                        int block_index = Random.int_range(0, block_length);
+                        int start_index = block_index * block_length;
+                        int end_index = block_index * block_length + block_length;
+                        revert_horizontally(data, start_index, end_index);
+                    }
+                    break;
+                  case 3:
+                    {
+                        int block_index = Random.int_range(0, block_length);
+                        int start_index = block_index * block_length;
+                        int end_index = block_index * block_length + block_length;
+                        revert_vertically(data, start_index, end_index);
+                    }
+                    break;
+                  case 4:
+                    {
+                        int block_index = Random.int_range(0, block_length);
+                        int start_index = block_index * block_length;
+                        int end_index = block_index * block_length + block_length;
+                        slide_vertically(data, start_index, end_index);
+                    }
+                    break;
+                  case 5:
+                    {
+                        int block_index = Random.int_range(0, block_length);
+                        int start_index = block_index * block_length;
+                        int end_index = block_index * block_length + block_length;
+                        slide_horizontally(data, start_index, end_index);
+                    }
+                    break;
                 }
             }
             
-            int rotate_count = Random.int_range(0, length + 1);
-            for (int i = 0; i < rotate_count; i++) {
-                rotate_values(data);
-            }
-            
-            int rev_h_count = Random.int_range(0, length + 1);
-            for (int i = 0; i < rev_h_count; i++) {
-                int block_index = Random.int_range(0, block_length);
-                int start_index = block_index * block_length;
-                int end_index = block_index * block_length + block_length;
-                revert_horizontally(data, start_index, end_index);
-            }
-            
-            int rev_v_count = Random.int_range(0, length + 1);
-            for (int i = 0; i < rev_v_count; i++) {
-                int block_index = Random.int_range(0, block_length);
-                int start_index = block_index * block_length;
-                int end_index = block_index * block_length + block_length;
-                revert_vertically(data, start_index, end_index);
-            }
-            
-            int slide_v_count = Random.int_range(0, 10);
-            for (int i = 0; i < slide_v_count; i++) {
-                int block_index = Random.int_range(0, block_length);
-                int start_index = block_index * block_length;
-                int end_index = block_index * block_length + block_length;
-                slide_vertically(data, start_index, end_index);
-            }
-            
-            int slide_h_count = Random.int_range(0, length + 1);
-            for (int i = 0; i < slide_h_count; i++) {
-                int block_index = Random.int_range(0, block_length);
-                int start_index = block_index * block_length;
-                int end_index = block_index * block_length + block_length;
-                slide_horizontally(data, start_index, end_index);
+            int block_num = length / block_length;
+            int[,] max_fixed_area = new int[block_num, block_num];
+            for (int i = 0; i < length / block_length; i++) {
+                for (int j = 0; j < length / block_length; j++) {
+                    max_fixed_area[i, j] = Random.int_range(block_num - 1, block_num + 2);
+                }
             }
             
             cells = new Cell[length, length];
             for (int i = 0; i < length; i++) {
                 for (int j = 0; j < length; j++) {
                     cells[i, j].correct_value = randomizer[data[i, j] - 1];
+                    int max_fixed_area_num = max_fixed_area[i / block_num, j / block_num];
                     int fixed_in_area = count_fixed_in_area(i, j);
                     int rest_in_area = count_rest_in_area(i, j);
-                    if (fixed_in_area >= max_fixed_area) {
+                    if (fixed_in_area >= max_fixed_area_num) {
                         cells[i, j].status = EMPTY;
                     } else {
-                        if (rest_in_area <= (max_fixed_area - fixed_in_area)) {
+                        if (rest_in_area <= (max_fixed_area_num - fixed_in_area)) {
                             cells[i, j].status = FIXED;
                         } else {
-                            if (Random.boolean()) {
+                            if (Random.int_range(0, 3) == 0) {
                                 cells[i, j].status = FIXED;
                             } else {
                                 cells[i, j].status = EMPTY;
@@ -290,58 +376,6 @@ namespace Aho {
             return (x2 - row - 1) * block_length + (y2 - 1 - col) + 1;
         }
 
-        public SudokuModel(ModelSize size) {
-            this.size = size;
-            if (size == MODEL_9) {
-                length = 9;
-                max_fixed_area = 3;
-                block_length = 3;
-            } else {
-                length = 16;
-                max_fixed_area = 5;
-                block_length = 4;
-            }
-            init_algorithm();
-        }
-
-        public int get_correct_value(int x, int y) {
-            return cells[x, y].correct_value;
-        }
-
-        public int get_temp_value(int x, int y) {
-            if (cells[x, y].status == EDITED) {
-                return cells[x, y].temp_value;
-            } else {
-                return 0;
-            }
-        }
-
-        public bool set_temp_value(int x, int y, int val) {
-            if (cells[x, y].status != FIXED) {
-                if (val == 0) {
-                    cells[x, y].temp_value = 0;
-                    cells[x, y].status = EMPTY;
-                    return true;
-                } else if (is_not_in_row((uint8) val, x, y, true) && is_not_in_column((uint8) val, x, y, true)
-                        && is_not_in_area((uint8) val, x, y, true)) {
-                    cells[x, y].temp_value = (uint8) val;
-                    cells[x, y].status = EDITED;
-                    if (is_completed()) {
-                        completed();
-                    }
-                    return true;
-                } else {
-                    return false;
-                }
-            } else {
-                return true;
-            }
-        }
-
-        public CellStatus get_status(int x, int y) {
-            return cells[x, y].status;
-        }
-
         private bool is_not_in_row(uint8 val, int row, int col, bool is_editing) {
             for (int j = 0; j < length; j++) {
                 if (is_editing) {
@@ -421,18 +455,6 @@ namespace Aho {
                         num = cells[i, j].temp_value;
                     }
                     if (num == 0 || !is_not_in_row(num, i, j, true) || is_not_in_column(num, i, j, true) || is_not_in_area(num, i, j, true)) {
-                        return false;
-                    }
-                }
-            }
-            return true;
-        }
-
-        public bool check_is_resetting_ok() {
-            for (int i = 0; i < length; i++) {
-                for (int j = 0; j < length; j++) {
-                    uint8 num = cells[i, j].correct_value;
-                    if (num == 0 || !is_not_in_row(num, i, j, false) || is_not_in_column(num, i, j, false) || is_not_in_area(num, i, j, false)) {
                         return false;
                     }
                 }
