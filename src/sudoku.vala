@@ -779,25 +779,37 @@ namespace Aho {
         public override bool motion_notify_event(Gdk.EventMotion event) {
             int x = (int) event.x;
             int y = (int) event.y;
+            int tmp1 = -1;
+            int tmp2 = -1;
             for (int i = 0; i < length; i++) {
-                for (int j = 0; j < length; j++) {
-                    if (rects[i, j].x <= x && x <= rects[i, j].x + cell_width
-                            && rects[i, j].y <= y && y <= rects[i, j].y + cell_height) {
-                        if (mouse_hover_position[0] != i || mouse_hover_position[1] != j) {
-                            mouse_hover_position[0] = i;
-                            mouse_hover_position[1] = j;
-                            mouse_position_x = event.x;
-                            mouse_position_y = event.y;
-                            queue_draw();
-                            return true;
-                        } else if (mouse_hover_position[0] == i && mouse_hover_position[1] == j) {
-                            mouse_position_x = event.x;
-                            mouse_position_y = event.y;
-                            queue_draw();
-                            return true;
-                        }
-                    }
+                if (rects[0, i].x <= x && x < rects[0, i].x + cell_width) {
+                    tmp1 = i;
+                    break;
                 }
+            }
+            for (int i = 0; i < length; i++) {
+                if (rects[i, 0].y <= y && y < rects[i, 0].y + cell_height) {
+                    tmp2 = i;
+                    break;
+                }
+            }
+            if (tmp1 < 0 || tmp2 < 0) {
+                mouse_position_x = event.x;
+                mouse_position_y = event.y;
+                queue_draw();
+                return true;
+            } else if (mouse_hover_position[0] != tmp1 || mouse_hover_position[1] != tmp2) {
+                mouse_hover_position[0] = tmp2;
+                mouse_hover_position[1] = tmp1;
+                mouse_position_x = event.x;
+                mouse_position_y = event.y;
+                queue_draw();
+                return true;
+            } else if (mouse_hover_position[0] == tmp1 && mouse_hover_position[1] == tmp2) {
+                mouse_position_x = event.x;
+                mouse_position_y = event.y;
+                queue_draw();
+                return true;
             }
             return false;
         }
