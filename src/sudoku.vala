@@ -486,7 +486,7 @@ namespace Aho {
             set {
                 theme_value = value;
                 if (theme_value == LIGHT) {
-                    border_color = {0.6, 0.6, 0.6, 1.0};
+                    border_color = {0.7, 0.7, 0.7, 1.0};
                     border_highlight_color = {0.0, 0.0, 0.0, 1.0};
                     cell_color = {1.0, 1.0, 1.0, 1.0};
                     number_color = {0.1, 0.1, 0.1, 1.0};
@@ -657,7 +657,7 @@ namespace Aho {
 
             if (mouse_hover_position[0] >= 0 && mouse_hover_position[1] >= 0) {
                 Cairo.Pattern pattern_bg = new Cairo.Pattern.radial(mouse_position_x, mouse_position_y, 0,
-                        mouse_position_x, mouse_position_y, cell_width * 5.0);
+                        mouse_position_x, mouse_position_y, cell_width * 4.0);
                 pattern_bg.add_color_stop_rgb(cell_width / 2, border_color.red, border_color.green, border_color.blue);
                 pattern_bg.add_color_stop_rgb(0, border_highlight_color.red, border_highlight_color.green, border_highlight_color.blue);
                 cairo.set_source(pattern_bg);
@@ -879,24 +879,35 @@ GPLv3 Copyright (C) 2021 Takayuki Tanaka <https://github.com/aharotias2>
                 reset_button = new Gtk.Button.with_label("Reset");
                 {
                     reset_button.clicked.connect(() => {
-                        Aho.SudokuModel? new_model = null;
-                        if (hard_switch.active) {
-                            new_model = new Aho.SudokuModel(MODEL_16);
-                            button_box_16.visible = true;
-                            button_box_9.visible = false;
-                        } else {
-                            new_model = new Aho.SudokuModel(MODEL_9);
-                            button_box_9.visible = true;
-                            button_box_16.visible = false;
-                        }
-                        widget.bind_model(new_model);
-                        if (widget.check_is_resetting_ok()) {
-                            message_label.label = @"<span color=\"red\"><b>リセットがうまくいっていません。</b></span>";
-                            Timeout.add(3000, () => {
-                                message_label.label = "";
+                        hard_switch.sensitive = false;
+                        reset_button.sensitive = false;
+                        Idle.add(() => {
+                            Aho.SudokuModel? new_model = null;
+                            if (hard_switch.active) {
+                                new_model = new Aho.SudokuModel(MODEL_16);
+                                button_box_16.visible = true;
+                                button_box_9.visible = false;
+                            } else {
+                                new_model = new Aho.SudokuModel(MODEL_9);
+                                button_box_9.visible = true;
+                                button_box_16.visible = false;
+                            }
+                            widget.bind_model(new_model);
+                            if (widget.check_is_resetting_ok()) {
+                                message_label.label = @"<span color=\"red\"><b>リセットがうまくいっていません。</b></span>";
+                                Timeout.add(3000, () => {
+                                    message_label.label = "";
+                                    return false;
+                                });
+                            }
+                            hard_switch.sensitive = true;
+                            reset_button.sensitive = true;
+                            Idle.add(() => {
+                                window.resize(1, 1);
                                 return false;
                             });
-                        }
+                            return false;
+                        });
                     });
                 }
 
@@ -1009,21 +1020,21 @@ GPLv3 Copyright (C) 2021 Takayuki Tanaka <https://github.com/aharotias2>
                                 }
                                 button_box_16_inner.pack_start(number_button);
                             }
-
-                            var del_button = new Gtk.Button.from_icon_name("edit-delete-symbolic");
-                            {
-                                del_button.clicked.connect(() => {
-                                    widget.delete_value();
-                                });
-                            }
-
-                            button_box_16_inner.pack_start(del_button);
-                            button_box_16_inner.layout_style = EXPAND;
                         }
-                        
+
+                        button_box_16_inner.layout_style = EXPAND;
                         button_box_16.pack_start(button_box_16_inner, false, false);
                     }
-                    
+
+                    var del_button = new Gtk.Button.from_icon_name("edit-delete-symbolic");
+                    {
+                        del_button.clicked.connect(() => {
+                            widget.delete_value();
+                        });
+                        del_button.halign = END;
+                    }
+
+                    button_box_16.pack_start(del_button);
                     button_box_16.margin = 10;
                 }
 
@@ -1106,7 +1117,11 @@ GPLv3 Copyright (C) 2021 Takayuki Tanaka <https://github.com/aharotias2>
             });
             
             window.add_events(Gdk.EventMask.KEY_PRESS_MASK);
-            window.set_default_size(550, 650);
+            window.set_default_size(500, 600);
+            Idle.add(() => {
+                window.resize(1, 1);
+                return false;
+            });
             window.title = "Let's Sudoku";
         }
         
