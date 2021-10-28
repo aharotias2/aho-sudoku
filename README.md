@@ -24,16 +24,15 @@ Aho-Sudoku
 
 インテリアのようなものと思っていただければと思います。
 
-### 実行ファイル
+### 実行ファイル (AppImage)
 
-ちなみに下記リンクをダウンロードすればコンパイル作業なしでプレイできます (x86_64系Linuxのみです)。
-実行権限をオンにして実行できます。
-(アイコンをクリックして起動しない場合はコマンドラインから実行してください)
+ちなみに下記リンクをダウンロードすればコンパイル作業なしでプレイできます。
+実行権限をオンにしてダブルクリックで実行できます。
 
-<https://drive.google.com/file/d/1dkccBxzsiVhTl6NGSoL1QsMrJ39cvtSX/view?usp=sharing>
+<https://drive.google.com/file/d/1Pa8eCtHGl5TV2vAuTk-tW6tKOeo0jieF/view?usp=sharing>
 
-* MD5SUM: 229dc56419850d6cae722d20a7acaa22
-* SHA256SUM: 77fdad2e33b4d9044d42bd63804b5984d748a1cc974cf378affa66db3c88c08b
+* MD5SUM: 18b1ff9c8bb0b3b1b7b5a910802aca13
+* SHA256SUM: e18bedbef4ef985c290b81baa368485a9ab116b2cf0393eabb2b4318970902a8
 
 ### 実行方法
 

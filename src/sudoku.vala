@@ -856,7 +856,7 @@ GPLv3 Copyright (C) 2021 Takayuki Tanaka <https://github.com/aharotias2>
             }
         }
     }
-    var app = new Gtk.Application("com.github.aharotias2.sudoku", FLAGS_NONE);
+    var app = new Gtk.Application("com.github.aharotias2.aho-sudoku", FLAGS_NONE);
     app.activate.connect(() => {
         Aho.SudokuWidget? widget = null;
         Gtk.Label? message_label = null;
