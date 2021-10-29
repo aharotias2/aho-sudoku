@@ -826,6 +826,113 @@ namespace Aho {
             return x == selected_position[0] && y == selected_position[1];
         }
     }
+    
+    public class StopWatch : Gtk.Stack {
+        public signal void started();
+        
+        private Gtk.Label page_1;
+        private Gtk.Label page_2;
+        private Gtk.Label page_3;
+        private Gtk.Label page_4;
+        private Gtk.Label page_5;
+        private bool is_running = false;
+        private bool is_paused = false;
+        private int time = 0;
+        private int count = 0;
+        
+        construct {
+            var df = new Pango.FontDescription();
+            df.set_family("Sans");
+            df.set_size(16 * Pango.SCALE);
+            df.set_weight(BOLD);
+            df.set_style(ITALIC);
+            var attr1 = new Pango.AttrFontDesc(df);
+            var attrlist = new Pango.AttrList();
+            attrlist.insert((owned) attr1);
+            
+            page_1 = new Gtk.Label("<span foreground=\"#f00\">始めます</span>") { attributes = attrlist, use_markup = true };
+            page_2 = new Gtk.Label("<span foreground=\"#f00\">3</span>") { attributes = attrlist, use_markup = true };
+            page_3 = new Gtk.Label("<span foreground=\"#f00\">2</span>") { attributes = attrlist, use_markup = true };
+            page_4 = new Gtk.Label("<span foreground=\"#f00\">1</span>") { attributes = attrlist, use_markup = true };
+            page_5 = new Gtk.Label("<span foreground=\"#f00\">0:00.00</span>") { attributes = attrlist, use_markup = true };
+            
+            add_named(page_1, "page-1");
+            add_named(page_2, "page-2");
+            add_named(page_3, "page-3");
+            add_named(page_4, "page-4");
+            add_named(page_5, "page-5");
+            
+            visible_child_name = "page-1";
+            transition_type = SLIDE_LEFT;
+        }
+        
+        public async void run() {
+            count++;
+            int count_save = count;
+            visible_child_name = "page-1";
+            Timeout.add(1000, run.callback);
+            yield;
+            if (count_save != count) {
+                return;
+            }
+            visible_child_name = "page-2";
+            Timeout.add(1000, run.callback);
+            yield;
+            if (count_save != count) {
+                return;
+            }
+            visible_child_name = "page-3";
+            Timeout.add(1000, run.callback);
+            yield;
+            if (count_save != count) {
+                return;
+            }
+            visible_child_name = "page-4";
+            Timeout.add(1000, run.callback);
+            yield;
+            if (count_save != count) {
+                return;
+            }
+            visible_child_name = "page-5";
+            is_running = true;
+            is_paused = false;
+            time = 0;
+            started();
+            while (count_save == count && is_running) {
+                if (!is_paused) {
+                    time += 1;
+                    if (time < TimeSpan.HOUR / 10) {
+                        page_5.label = "<span foreground=\"#f00\">%02d:%02d.%02d</span>".printf(
+                            time / 100 / 60,
+                            time / 100 % 60,
+                            time % 60
+                        );
+                    } else {
+                        page_5.label = "<span foreground=\"#f00\">%d:%02d:%02d.%02d</span>".printf(
+                            time / 100 / 60 / 60,
+                            time / 100 / 60 % 60,
+                            time / 100 % 60,
+                            time % 60
+                        );
+                    }
+                }
+                Timeout.add(10, run.callback);
+                yield;
+            }
+        }
+        
+        public void stop() {
+            is_running = false;
+        }
+        
+        public void pause() {
+            is_paused = true;
+        }
+        
+        public void unpause() {
+            is_paused = false;
+        }
+    }
 }
 
 int main(string[] argv) {
@@ -856,61 +963,21 @@ GPLv3 Copyright (C) 2021 Takayuki Tanaka <https://github.com/aharotias2>
             }
         }
     }
+    
     var app = new Gtk.Application("com.github.aharotias2.aho-sudoku", FLAGS_NONE);
     app.activate.connect(() => {
         Aho.SudokuWidget? widget = null;
-        Gtk.Label? message_label = null;
-        Gtk.ButtonBox? button_box_9 = null;
+        Gtk.Label? message_label_9 = null;
+        Gtk.Label? message_label_16 = null;
+        Gtk.Box? button_box_9 = null;
         Gtk.Box? button_box_16 = null;
-        Gtk.Button? reset_button = null;
+        Gtk.Stack? stack = null;
+        Aho.StopWatch? stop_watch_9 = null;
+        Aho.StopWatch? stop_watch_16 = null;
         var window = new Gtk.ApplicationWindow(app);
         {
             var header_bar = new Gtk.HeaderBar();
             {
-                var hard_switch = new Gtk.Switch();
-                {
-                    hard_switch.tooltip_text = "Enable the hard mode";
-                    hard_switch.state_set.connect((state) => {
-                        reset_button.clicked();
-                        return false;
-                    });
-                }
-                
-                reset_button = new Gtk.Button.with_label("Reset");
-                {
-                    reset_button.clicked.connect(() => {
-                        hard_switch.sensitive = false;
-                        reset_button.sensitive = false;
-                        Idle.add(() => {
-                            Aho.SudokuModel? new_model = null;
-                            if (hard_switch.active) {
-                                new_model = new Aho.SudokuModel(MODEL_16);
-                                button_box_16.visible = true;
-                                button_box_9.visible = false;
-                            } else {
-                                new_model = new Aho.SudokuModel(MODEL_9);
-                                button_box_9.visible = true;
-                                button_box_16.visible = false;
-                            }
-                            widget.bind_model(new_model);
-                            if (widget.check_is_resetting_ok()) {
-                                message_label.label = @"<span color=\"red\"><b>リセットがうまくいっていません。</b></span>";
-                                Timeout.add(3000, () => {
-                                    message_label.label = "";
-                                    return false;
-                                });
-                            }
-                            hard_switch.sensitive = true;
-                            reset_button.sensitive = true;
-                            Idle.add(() => {
-                                window.resize(1, 1);
-                                return false;
-                            });
-                            return false;
-                        });
-                    });
-                }
-
                 var switch_button = new Gtk.Switch();
                 {
                     switch_button.tooltip_text = "Enable the dark mode";
@@ -926,126 +993,301 @@ GPLv3 Copyright (C) 2021 Takayuki Tanaka <https://github.com/aharotias2>
                     });
                 }
                 
-                header_bar.pack_start(hard_switch);
-                header_bar.pack_start(reset_button);
-                header_bar.pack_end(switch_button);
+                header_bar.pack_start(switch_button);
                 header_bar.show_close_button = true;
             }
             
-            var box_1 = new Gtk.Box(VERTICAL, 0);
+            var box_body = new Gtk.Box(VERTICAL, 0);
             {
-                var box_2 = new Gtk.Box(HORIZONTAL, 0);
+                var box_middle = new Gtk.Box(HORIZONTAL, 0);
                 {
-                    message_label = new Gtk.Label("") {
-                        use_markup = true
-                    };
-    
-                    Gtk.ToggleButton? debug_button = null;
-                    if (is_debug) {
-                        debug_button = new Gtk.ToggleButton.with_label("Debug");
-                        {
-                            debug_button.toggled.connect(() => {
-                                widget.is_debug_mode = debug_button.active;
-                            });
-                        }
-                    }
-                    
-                    box_2.pack_start(message_label, true, true);
-                    if (is_debug) {
-                        box_2.pack_start(debug_button, false, false);
-                    }
-                    box_2.margin = 10;
-                }
-
-                Aho.SudokuModel? model = new Aho.SudokuModel(MODEL_9);
-                widget = new Aho.SudokuWidget.with_model(model);
-                {
-                    widget.require_error_dialog.connect((message) => {
-                        message_label.label = @"<span color=\"red\"><b>$(message)</b></span>";
-                        Timeout.add(3000, () => {
-                            message_label.label = "";
-                            return false;
-                        });
-                    });
-                    widget.completed.connect(() => {
-                        var dialog = new Gtk.MessageDialog(window, MODAL, INFO, OK, "おめでとうございます。あなたはゲームに勝ちました!");
-                        dialog.run();
-                        dialog.close();
-                    });
-                    widget.margin = 10;
-                    var gtk_settings = Gtk.Settings.get_default();
-                    if (gtk_settings.gtk_application_prefer_dark_theme) {
-                        widget.theme = Aho.Theme.DARK;
-                    } else {
-                        widget.theme = Aho.Theme.LIGHT;
-                    }
-                }
-
-                button_box_9 = new Gtk.ButtonBox(HORIZONTAL);
-                {
-                    for (int i = 0; i < 9; i++) {
-                        var number_button = new Gtk.Button.with_label((i + 1).to_string());
-                        {
-                            int number = i + 1;
-                            number_button.clicked.connect(() => {
-                                widget.put_value(number);
-                            });
-                        }
-                        button_box_9.pack_start(number_button);
-                    }
-                    var del_button = new Gtk.Button.from_icon_name("edit-delete-symbolic");
+                    var box_left = new Gtk.Box(VERTICAL, 0);
                     {
-                        del_button.clicked.connect(() => {
-                            widget.delete_value();
-                        });
-                    }
-
-                    button_box_9.pack_start(del_button);
-                    button_box_9.layout_style = EXPAND;
-                    button_box_9.margin = 10;
-                }
-
-                button_box_16 = new Gtk.Box(VERTICAL, 5);
-                {
-                    for (int i = 0; i < 2; i++) {
-                        var button_box_16_inner = new Gtk.ButtonBox(HORIZONTAL);
+                        Aho.SudokuModel? model = new Aho.SudokuModel(MODEL_9);
+                        widget = new Aho.SudokuWidget.with_model(model);
                         {
-                            for (int j = 0; j < 8; j++) {
-                                var number_button = new Gtk.Button.with_label(Aho.LETTERS[i * 8 + j]);
-                                {
-                                    int number = i * 8 + j + 1;
-                                    number_button.clicked.connect(() => {
-                                        widget.put_value(number);
-                                    });
+                            widget.require_error_dialog.connect((message) => {
+                                if (stack.visible_child_name == "page-2") {
+                                    message_label_9.label = @"<span color=\"red\"><b>$(message)</b></span>";
+                                } else if (stack.visible_child_name == "page-3") {
+                                    message_label_16.label = @"<span color=\"red\"><b>$(message)</b></span>";
                                 }
-                                button_box_16_inner.pack_start(number_button);
+                                Timeout.add(3000, () => {
+                                    message_label_9.label = "";
+                                    message_label_16.label = "";
+                                    return false;
+                                });
+                            });
+                            widget.completed.connect(() => {
+                                var dialog = new Gtk.MessageDialog(window, MODAL, INFO, OK, "おめでとうございます。あなたはゲームに勝ちました!");
+                                dialog.run();
+                                dialog.close();
+                                Idle.add(() => {
+                                    stack.visible_child_name = "page-1";
+                                    widget.sensitive = false;
+                                    button_box_9.sensitive = false;
+                                    button_box_16.sensitive = false;
+                                    return false;
+                                });
+                            });
+                            widget.margin = 10;
+                            widget.sensitive = false;
+                            var gtk_settings = Gtk.Settings.get_default();
+                            if (gtk_settings.gtk_application_prefer_dark_theme) {
+                                widget.theme = Aho.Theme.DARK;
+                            } else {
+                                widget.theme = Aho.Theme.LIGHT;
                             }
                         }
 
-                        button_box_16_inner.layout_style = EXPAND;
-                        button_box_16.pack_start(button_box_16_inner, false, false);
+                        box_left.pack_start(widget, true, true);
                     }
-
-                    var del_button = new Gtk.Button.from_icon_name("edit-delete-symbolic");
+                    
+                    var box_right = new Gtk.Box(VERTICAL, 0);
                     {
-                        del_button.clicked.connect(() => {
-                            widget.delete_value();
-                        });
-                        del_button.halign = END;
+                        stack = new Gtk.Stack();
+                        {
+                            var page_1 = new Gtk.Box(VERTICAL, 20);
+                            {
+                                var label = new Gtk.Label("始めますか？");
+                                var button_box = new Gtk.ButtonBox(VERTICAL);
+                                {
+                                    var do_9x9_button = new Gtk.Button.with_label("9x9を始める");
+                                    do_9x9_button.clicked.connect(() => {
+                                        Aho.SudokuModel? new_model = null;
+                                        new_model = new Aho.SudokuModel(MODEL_9);
+                                        button_box_9.visible = true;
+                                        button_box_16.visible = false;
+                                        widget.bind_model(new_model);
+                                        if (widget.check_is_resetting_ok()) {
+                                            message_label_9.label = @"<span color=\"red\"><b>リセットがうまくいっていません。</b></span>";
+                                            Timeout.add(3000, () => {
+                                                message_label_9.label = "";
+                                                return false;
+                                            });
+                                        }
+                                        stack.visible_child_name = "page-2";
+                                        stop_watch_9.run.begin();
+                                        Idle.add(() => {
+                                            window.resize(1, 1);
+                                            stack.transition_type = SLIDE_RIGHT;
+                                            return false;
+                                        });
+                                    });
+                                    
+                                    var do_16x16_button = new Gtk.Button.with_label("16x16を始める");
+                                    do_16x16_button.clicked.connect(() => {
+                                        Aho.SudokuModel? new_model = null;
+                                        new_model = new Aho.SudokuModel(MODEL_16);
+                                        button_box_16.visible = true;
+                                        button_box_9.visible = false;
+                                        widget.bind_model(new_model);
+                                        if (widget.check_is_resetting_ok()) {
+                                            message_label_9.label = @"<span color=\"red\"><b>リセットがうまくいっていません。</b></span>";
+                                            Timeout.add(3000, () => {
+                                                message_label_9.label = "";
+                                                return false;
+                                            });
+                                        }
+                                        stack.visible_child_name = "page-3";
+                                        stop_watch_16.run.begin();
+                                        Idle.add(() => {
+                                            window.resize(1, 1);
+                                            stack.transition_type = SLIDE_RIGHT;
+                                            return false;
+                                        });
+                                    });
+                                    button_box.pack_start(do_9x9_button, true, false);
+                                    button_box.pack_start(do_16x16_button, true, false);
+                                    button_box.set_spacing(20);
+                                }
+                                
+                                page_1.pack_start(label, false, false);
+                                page_1.pack_start(button_box, false, false);
+                                page_1.margin = 6;
+                            }
+                            
+                            var page_2 = new Gtk.Box(VERTICAL, 20);
+                            {
+                                stop_watch_9 = new Aho.StopWatch();
+                                {
+                                    stop_watch_9.started.connect(() => {
+                                        button_box_9.sensitive = true;
+                                        widget.sensitive = true;
+                                    });
+                                }
+                                
+                                button_box_9 = new Gtk.Box(VERTICAL, 3);
+                                {
+                                    for (int i = 0; i < 3; i++) {
+                                        var button_box_3 = new Gtk.ButtonBox(HORIZONTAL);
+                                        for (int j = 0; j < 3; j++) {
+                                            var number_button = new Gtk.Button.with_label((i * 3 + j + 1).to_string());
+                                            {
+                                                int number = i * 3 + j + 1;
+                                                number_button.clicked.connect(() => {
+                                                    widget.put_value(number);
+                                                });
+                                            }
+                                            button_box_3.pack_start(number_button);
+                                        }
+                                        button_box_9.pack_start(button_box_3, false, false);
+                                    }
+                                    
+                                    var del_button = new Gtk.Button.from_icon_name("edit-delete-symbolic");
+                                    {
+                                        del_button.clicked.connect(() => {
+                                            widget.delete_value();
+                                        });
+                                    }
+
+                                    button_box_9.pack_start(del_button);
+                                    button_box_9.sensitive = false;
+                                }
+
+                                var message_box_9 = new Gtk.Box(HORIZONTAL, 0);
+                                {
+                                    message_label_9 = new Gtk.Label("") {
+                                        use_markup = true
+                                    };
+
+                                    Gtk.ToggleButton? debug_button = null;
+                                    if (is_debug) {
+                                        debug_button = new Gtk.ToggleButton.with_label("Debug");
+                                        {
+                                            debug_button.toggled.connect(() => {
+                                                widget.is_debug_mode = debug_button.active;
+                                            });
+                                        }
+                                    }
+
+                                    message_box_9.pack_start(message_label_9, true, true);
+                                    if (is_debug) {
+                                        message_box_9.pack_start(debug_button, false, false);
+                                    }
+                                    message_box_9.margin = 10;
+                                }
+
+                                var stop_button = new Gtk.Button.with_label("戻る");
+                                {
+                                    stop_button.clicked.connect(() => {
+                                        stop_watch_9.stop();
+                                        widget.sensitive = false;
+                                        button_box_9.sensitive = false;
+                                        stack.visible_child_name = "page-1";
+                                        stack.transition_type = SLIDE_LEFT;
+                                    });
+                                }
+                                
+                                page_2.pack_start(stop_watch_9, false, false);
+                                page_2.pack_start(button_box_9, false, false);
+                                page_2.pack_start(message_box_9, true, true);
+                                page_2.pack_start(stop_button, false, false);
+                                page_2.margin = 6;
+                            }
+                            
+                            var page_3 = new Gtk.Box(VERTICAL, 20);
+                            {
+                                stop_watch_16 = new Aho.StopWatch();
+                                {
+                                    stop_watch_16.started.connect(() => {
+                                        button_box_16.sensitive = true;
+                                        widget.sensitive = true;
+                                    });
+                                }
+                                
+                                button_box_16 = new Gtk.Box(VERTICAL, 5);
+                                {
+                                    for (int i = 0; i < 4; i++) {
+                                        var button_box_16_inner = new Gtk.ButtonBox(HORIZONTAL);
+                                        {
+                                            for (int j = 0; j < 4; j++) {
+                                                var number_button = new Gtk.Button.with_label(Aho.LETTERS[i * 4 + j]);
+                                                {
+                                                    int number = i * 4 + j + 1;
+                                                    number_button.clicked.connect(() => {
+                                                        widget.put_value(number);
+                                                    });
+                                                }
+                                                button_box_16_inner.pack_start(number_button);
+                                            }
+                                        }
+
+                                        button_box_16_inner.layout_style = EXPAND;
+                                        button_box_16.pack_start(button_box_16_inner, false, false);
+                                    }
+
+                                    var del_button = new Gtk.Button.from_icon_name("edit-delete-symbolic");
+                                    {
+                                        del_button.clicked.connect(() => {
+                                            widget.delete_value();
+                                        });
+                                    }
+
+                                    button_box_16.pack_start(del_button);
+                                    button_box_16.sensitive = false;
+                                }
+
+                                var message_box_16 = new Gtk.Box(HORIZONTAL, 0);
+                                {
+                                    message_label_16 = new Gtk.Label("") {
+                                        use_markup = true
+                                    };
+
+                                    Gtk.ToggleButton? debug_button = null;
+                                    if (is_debug) {
+                                        debug_button = new Gtk.ToggleButton.with_label("Debug");
+                                        {
+                                            debug_button.toggled.connect(() => {
+                                                widget.is_debug_mode = debug_button.active;
+                                            });
+                                        }
+                                    }
+
+                                    message_box_16.pack_start(message_label_16, true, true);
+                                    if (is_debug) {
+                                        message_box_16.pack_start(debug_button, false, false);
+                                    }
+                                    message_box_16.margin = 10;
+                                }
+
+                                var stop_button = new Gtk.Button.with_label("戻る");
+                                {
+                                    stop_button.clicked.connect(() => {
+                                        stop_watch_16.stop();
+                                        widget.sensitive = false;
+                                        button_box_16.sensitive = false;
+                                        stack.visible_child_name = "page-1";
+                                        stack.transition_type = SLIDE_LEFT;
+                                    });
+                                }
+                                
+                                page_3.pack_start(stop_watch_16);
+                                page_3.pack_start(button_box_16);
+                                page_3.pack_start(message_box_16);
+                                page_3.pack_end(stop_button);
+                                page_3.margin = 6;
+                            }
+                            
+                            stack.add_named(page_1, "page-1");
+                            stack.add_named(page_2, "page-2");
+                            stack.add_named(page_3, "page-3");
+                            stack.visible_child = page_1;
+                            stack.transition_type = SLIDE_LEFT;
+                        }
+                        
+                        box_right.pack_start(stack, false, false);
                     }
-
-                    button_box_16.pack_start(del_button);
-                    button_box_16.margin = 10;
+                    
+                    box_middle.pack_start(box_left, false, false);
+                    box_middle.pack_start(box_right, false, false);
                 }
-
-                box_1.pack_start(box_2, false, false);
-                box_1.pack_start(widget, true, true);
-                box_1.pack_start(button_box_9, false, false);
-                box_1.pack_start(button_box_16, false, false);
+                
+                box_body.pack_start(box_middle, false, false);
             }
             
             window.set_titlebar(header_bar);
-            window.add(box_1);
+            window.add(box_body);
             window.key_press_event.connect((event) => {
                 uint8 num = 0;
                 if (event.state == CONTROL_MASK) {

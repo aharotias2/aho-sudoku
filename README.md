@@ -12,7 +12,7 @@ Aho-Sudoku
 
 ダークモードはじめました。
 
-![画像](screenshot-2.png)
+![画像](screenshot-4.png)
 
 ### 16進法モード
 左上のスイッチをオンにしますと16進法 (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, A, B, C, D, E, F) モードになりま
@@ -29,10 +29,10 @@ Aho-Sudoku
 ちなみに下記リンクをダウンロードすればコンパイル作業なしでプレイできます。
 実行権限をオンにしてダブルクリックで実行できます。
 
-<https://drive.google.com/file/d/1Pa8eCtHGl5TV2vAuTk-tW6tKOeo0jieF/view?usp=sharing>
+<https://drive.google.com/file/d/11ENyHUUDy0bEvDehJURduYCcY25k2-qR/view?usp=sharing>
 
-* MD5SUM: 18b1ff9c8bb0b3b1b7b5a910802aca13
-* SHA256SUM: e18bedbef4ef985c290b81baa368485a9ab116b2cf0393eabb2b4318970902a8
+* MD5SUM: b140bf70cb40c0aa4ab39bec81176036
+* SHA256SUM: ab06f2bdce0e3145b3e1574574d9e7f26e621b25a00083360c11499330828c96
 
 ### 実行方法
 
