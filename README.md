@@ -29,10 +29,10 @@ Aho-Sudoku
 ちなみに下記リンクをダウンロードすればコンパイル作業なしでプレイできます。
 実行権限をオンにしてダブルクリックで実行できます。
 
-<https://drive.google.com/file/d/11ENyHUUDy0bEvDehJURduYCcY25k2-qR/view?usp=sharing>
+<https://drive.google.com/file/d/16IxIQ79RfCMYwWyjt8XAaog-zBap_Wwa/view?usp=sharing>
 
-* MD5SUM: b140bf70cb40c0aa4ab39bec81176036
-* SHA256SUM: ab06f2bdce0e3145b3e1574574d9e7f26e621b25a00083360c11499330828c96
+* MD5SUM: ebb378e841117e55d6411064dd09340a
+* SHA256SUM: 43c934025b2e08200cfc741274dc51dc990f47ae579414cc7b82a2afec8bd966
 
 ### 実行方法
 

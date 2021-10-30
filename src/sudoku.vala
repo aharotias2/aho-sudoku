@@ -898,10 +898,11 @@ namespace Aho {
             is_paused = false;
             time = 0;
             started();
+            int hour_span = 60 * 60 * 100;
             while (count_save == count && is_running) {
                 if (!is_paused) {
                     time += 1;
-                    if (time < TimeSpan.HOUR / 10) {
+                    if (time < hour_span) {
                         page_5.label = "<span foreground=\"#f00\">%02d:%02d.%02d</span>".printf(
                             time / 100 / 60,
                             time / 100 % 60,
@@ -972,6 +973,9 @@ GPLv3 Copyright (C) 2021 Takayuki Tanaka <https://github.com/aharotias2>
         Gtk.Box? button_box_9 = null;
         Gtk.Box? button_box_16 = null;
         Gtk.Stack? stack = null;
+        Gtk.Box? page_1 = null;
+        Gtk.Box? page_2 = null;
+        Gtk.Box? page_3 = null;
         Aho.StopWatch? stop_watch_9 = null;
         Aho.StopWatch? stop_watch_16 = null;
         var window = new Gtk.ApplicationWindow(app);
@@ -1009,14 +1013,17 @@ GPLv3 Copyright (C) 2021 Takayuki Tanaka <https://github.com/aharotias2>
                             widget.require_error_dialog.connect((message) => {
                                 if (stack.visible_child_name == "page-2") {
                                     message_label_9.label = @"<span color=\"red\"><b>$(message)</b></span>";
+                                    Timeout.add(3000, () => {
+                                        message_label_9.label = "";
+                                        return false;
+                                    });
                                 } else if (stack.visible_child_name == "page-3") {
                                     message_label_16.label = @"<span color=\"red\"><b>$(message)</b></span>";
+                                    Timeout.add(3000, () => {
+                                        message_label_16.label = "";
+                                        return false;
+                                    });
                                 }
-                                Timeout.add(3000, () => {
-                                    message_label_9.label = "";
-                                    message_label_16.label = "";
-                                    return false;
-                                });
                             });
                             widget.completed.connect(() => {
                                 var dialog = new Gtk.MessageDialog(window, MODAL, INFO, OK, "おめでとうございます。あなたはゲームに勝ちました!");
@@ -1047,17 +1054,14 @@ GPLv3 Copyright (C) 2021 Takayuki Tanaka <https://github.com/aharotias2>
                     {
                         stack = new Gtk.Stack();
                         {
-                            var page_1 = new Gtk.Box(VERTICAL, 20);
+                            page_1 = new Gtk.Box(VERTICAL, 20);
                             {
                                 var label = new Gtk.Label("始めますか？");
                                 var button_box = new Gtk.ButtonBox(VERTICAL);
                                 {
                                     var do_9x9_button = new Gtk.Button.with_label("9x9を始める");
                                     do_9x9_button.clicked.connect(() => {
-                                        Aho.SudokuModel? new_model = null;
-                                        new_model = new Aho.SudokuModel(MODEL_9);
-                                        button_box_9.visible = true;
-                                        button_box_16.visible = false;
+                                        var new_model = new Aho.SudokuModel(MODEL_9);
                                         widget.bind_model(new_model);
                                         if (widget.check_is_resetting_ok()) {
                                             message_label_9.label = @"<span color=\"red\"><b>リセットがうまくいっていません。</b></span>";
@@ -1071,21 +1075,22 @@ GPLv3 Copyright (C) 2021 Takayuki Tanaka <https://github.com/aharotias2>
                                         Idle.add(() => {
                                             window.resize(1, 1);
                                             stack.transition_type = SLIDE_RIGHT;
+                                            Idle.add(() => {
+                                                page_2.height_request = widget.height_request;
+                                                return false;
+                                            });
                                             return false;
                                         });
                                     });
                                     
                                     var do_16x16_button = new Gtk.Button.with_label("16x16を始める");
                                     do_16x16_button.clicked.connect(() => {
-                                        Aho.SudokuModel? new_model = null;
-                                        new_model = new Aho.SudokuModel(MODEL_16);
-                                        button_box_16.visible = true;
-                                        button_box_9.visible = false;
+                                        var new_model = new Aho.SudokuModel(MODEL_16);
                                         widget.bind_model(new_model);
                                         if (widget.check_is_resetting_ok()) {
-                                            message_label_9.label = @"<span color=\"red\"><b>リセットがうまくいっていません。</b></span>";
+                                            message_label_16.label = @"<span color=\"red\"><b>リセットがうまくいっていません。</b></span>";
                                             Timeout.add(3000, () => {
-                                                message_label_9.label = "";
+                                                message_label_16.label = "";
                                                 return false;
                                             });
                                         }
@@ -1094,6 +1099,10 @@ GPLv3 Copyright (C) 2021 Takayuki Tanaka <https://github.com/aharotias2>
                                         Idle.add(() => {
                                             window.resize(1, 1);
                                             stack.transition_type = SLIDE_RIGHT;
+                                            Idle.add(() => {
+                                                page_3.height_request = widget.height_request;
+                                                return false;
+                                            });
                                             return false;
                                         });
                                     });
@@ -1107,7 +1116,7 @@ GPLv3 Copyright (C) 2021 Takayuki Tanaka <https://github.com/aharotias2>
                                 page_1.margin = 6;
                             }
                             
-                            var page_2 = new Gtk.Box(VERTICAL, 20);
+                            page_2 = new Gtk.Box(VERTICAL, 20);
                             {
                                 stop_watch_9 = new Aho.StopWatch();
                                 {
@@ -1121,15 +1130,19 @@ GPLv3 Copyright (C) 2021 Takayuki Tanaka <https://github.com/aharotias2>
                                 {
                                     for (int i = 0; i < 3; i++) {
                                         var button_box_3 = new Gtk.ButtonBox(HORIZONTAL);
-                                        for (int j = 0; j < 3; j++) {
-                                            var number_button = new Gtk.Button.with_label((i * 3 + j + 1).to_string());
-                                            {
-                                                int number = i * 3 + j + 1;
-                                                number_button.clicked.connect(() => {
-                                                    widget.put_value(number);
-                                                });
+                                        {
+                                            for (int j = 0; j < 3; j++) {
+                                                var number_button = new Gtk.Button.with_label((i * 3 + j + 1).to_string());
+                                                {
+                                                    int number = i * 3 + j + 1;
+                                                    number_button.clicked.connect(() => {
+                                                        widget.put_value(number);
+                                                    });
+                                                }
+                                                button_box_3.pack_start(number_button);
                                             }
-                                            button_box_3.pack_start(number_button);
+                                            
+                                            button_box_3.set_spacing(3);
                                         }
                                         button_box_9.pack_start(button_box_3, false, false);
                                     }
@@ -1181,12 +1194,12 @@ GPLv3 Copyright (C) 2021 Takayuki Tanaka <https://github.com/aharotias2>
                                 
                                 page_2.pack_start(stop_watch_9, false, false);
                                 page_2.pack_start(button_box_9, false, false);
-                                page_2.pack_start(message_box_9, true, true);
+                                page_2.pack_start(message_box_9,true, false);
                                 page_2.pack_start(stop_button, false, false);
                                 page_2.margin = 6;
                             }
                             
-                            var page_3 = new Gtk.Box(VERTICAL, 20);
+                            page_3 = new Gtk.Box(VERTICAL, 20);
                             {
                                 stop_watch_16 = new Aho.StopWatch();
                                 {
@@ -1262,10 +1275,10 @@ GPLv3 Copyright (C) 2021 Takayuki Tanaka <https://github.com/aharotias2>
                                     });
                                 }
                                 
-                                page_3.pack_start(stop_watch_16);
-                                page_3.pack_start(button_box_16);
-                                page_3.pack_start(message_box_16);
-                                page_3.pack_end(stop_button);
+                                page_3.pack_start(stop_watch_16, false, false);
+                                page_3.pack_start(button_box_16, false, false);
+                                page_3.pack_start(message_box_16, true, false);
+                                page_3.pack_end(stop_button, false, false);
                                 page_3.margin = 6;
                             }
                             
@@ -1368,7 +1381,6 @@ GPLv3 Copyright (C) 2021 Takayuki Tanaka <https://github.com/aharotias2>
         }
         
         window.show_all();
-        button_box_16.visible = false;
     });
     
     return app.run(null);
