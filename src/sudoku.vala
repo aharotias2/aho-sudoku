@@ -906,14 +906,14 @@ namespace Aho {
                         page_5.label = "<span foreground=\"#f00\">%02d:%02d.%02d</span>".printf(
                             time / 100 / 60,
                             time / 100 % 60,
-                            time % 60
+                            time % 100
                         );
                     } else {
                         page_5.label = "<span foreground=\"#f00\">%d:%02d:%02d.%02d</span>".printf(
                             time / 100 / 60 / 60,
                             time / 100 / 60 % 60,
                             time / 100 % 60,
-                            time % 60
+                            time % 100
                         );
                     }
                 }

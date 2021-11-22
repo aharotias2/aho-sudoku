@@ -15,7 +15,7 @@ executable(
 
 install_data(
   'data/com.github.aharotias2.aho-sudoku.png',
-  install_dir: get_option('datadir') / 'share/icons/hicolor/256x256/apps'
+  install_dir: get_option('datadir') / 'share/icons/hicolor/128x128/apps'
 )
 
 install_data(
