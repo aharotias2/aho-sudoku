@@ -42,13 +42,13 @@ You can play this game without compiling by downloading AppImage file.
 Download page: [Release page](https://github.com/aharotias2/aho-sudoku/releases).  
 You should enable executable flag of property of the downloaded file.
 
-### 実行方法
+### How to execute
 
-| オプション | 短かいオプション | 説明                 |
-|------------|------------------|----------------------|
-| help       | h                | print help           |
-| version    | v                | print version        |
-| debug      | d                | launch in debug mode |
+| long option | short option | description          |
+|-------------|--------------|----------------------|
+| help        | h            | print help           |
+| version     | v            | print version        |
+| debug       | d            | launch in debug mode |
 
 ***
 
