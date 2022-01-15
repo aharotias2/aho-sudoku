@@ -1,43 +1,55 @@
 Aho-Sudoku
 ====================================================================================================
-解けるかわからないアホな数独デスクトップアプリケーション。
+This is a game application of SUDOKU (数独).
 
-![画像](screenshot-1.png)
+The rule is simple: There is 9 x 9 cells in a field.
+Cells are divided into 3 x 3 blocks.
+You should put numbers from 1 to 9 in all cells.
+And you are not allowed to put the same numbers in one rows, columns, and 3 x 3 blocks at the same
+time.
+Can you understand reading this explanation?
+If no, Google will help you.
 
-一応、正解はあるのですが、見えている数字から推測して本当に解けるのかは不明です。
+![Image](screenshot-1.png)
 
-くれぐれも、真剣にプレイしないでください。
+Caution: There are combinations of numbers that are correct, but I can't say that you can always
+guess by looking at the numbers you see.
 
-### ダークモード
+We strongly recommend that you do not play this game seriously. 
 
-ダークモードはじめました。
+### Dark Mode
 
-![画像](screenshot-4.png)
+It can be in a dark mode.
 
-### 16進法モード
-左上のスイッチをオンにしますと16進法 (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, A, B, C, D, E, F) モードになりま
-す。
+![Image](screenshot-4.png)
 
-![画像](screenshot-3.png)
+### Hexadecimal mode
+Pressing a button on the top-left corner, you can switch the game to “Hexadecimal mode”.
 
-これは私もやりたくありませんので、やはりプレイしない方が良いと思います。
+In this mode, 16 numbers (1, 2, 3, 4, 5, 6, 7, 8, 9, A, B, C, D, E, F) can be selected.
 
-インテリアのようなものと思っていただければと思います。
+Field will be 16 x 16 cells.
 
-### 実行ファイル (AppImage)
+![Image](screenshot-3.png)
 
-ちなみにAppImageをダウンロードすればコンパイル作業なしでプレイできます。
-ダウンロードは[リリースページ](https://github.com/aharotias2/aho-sudoku/releases)からできます。
-実行権限をオンにしてダブルクリックで実行できます。
+I don’t want to play this though.
+
+I recommend you to take it as an interia.
+
+### Executable file (AppImage)
+
+You can play this game without compiling by downloading AppImage file.  
+Download page: [Release page](https://github.com/aharotias2/aho-sudoku/releases).  
+You should enable executable flag of property of the downloaded file.
 
 ### 実行方法
 
-| オプション | 短かいオプション | 説明                                              |
-|------------|------------------|---------------------------------------------------|
-| help       | h                | ヘルプを表示                                      |
-| version    | v                | バージョンを表示                                  |
-| debug      | d                | デバッグモードで起動 (デバッグボタンが表示される) |
+| オプション | 短かいオプション | 説明                 |
+|------------|------------------|----------------------|
+| help       | h                | print help           |
+| version    | v                | print version        |
+| debug      | d                | launch in debug mode |
 
 ***
 
-Copyright © 2021 田中喬之
+Copyright © 2021 Takayuki Tanaka (田中喬之)
