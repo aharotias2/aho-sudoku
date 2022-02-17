@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Aho Sudoku
+Exec=com.github.aharotias2.aho-sudoku
+Type=Application
+Terminal=false
+Categories=Game
+Icon=com.github.aharotias2.aho-sudoku
+
